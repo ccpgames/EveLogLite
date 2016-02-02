@@ -1,0 +1,20 @@
+<RCC>
+    <qresource prefix="/default">
+        <file alias="counter">resources/Counter.png</file>
+        <file alias="error">resources/Error.png</file>
+        <file alias="fatal">resources/Fatal.png</file>
+        <file alias="info">resources/Info.png</file>
+        <file alias="machocall">resources/Mcall.png</file>
+        <file alias="notice">resources/Notice.png</file>
+        <file alias="overlap">resources/Overlap.png</file>
+        <file alias="warning">resources/Warning.png</file>
+        <file alias="searchClose">resources/searchClose.png</file>
+        <file alias="searchDown">resources/searchDown.png</file>
+        <file alias="searchUp">resources/searchUp.png</file>
+        <file alias="pulse">resources/pulse.png</file>
+        <file alias="nofilter">resources/filter-off.png</file>
+        <file alias="filter">resources/filter.png</file>
+        <file alias="highlights">resources/highlights.png</file>
+        <file alias="nohighlights">resources/highlights-off.png</file>
+    </qresource>
+</RCC>
