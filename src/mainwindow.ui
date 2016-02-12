@@ -669,6 +669,9 @@
    <property name="text">
     <string>About LogLite...</string>
    </property>
+   <property name="menuRole">
+    <enum>QAction::AboutRole</enum>
+   </property>
   </action>
   <action name="actionSettings">
    <property name="text">
@@ -758,6 +761,9 @@
   <action name="actionAboutQt">
    <property name="text">
     <string>About Qt...</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::AboutQtRole</enum>
    </property>
   </action>
   <action name="actionCopyMessagesOnly">

@@ -25,7 +25,12 @@ public:
 
     void closeEvent(QCloseEvent *event);
     bool eventFilter(QObject *object, QEvent *event);
+
+    void dragEnterEvent(QDragEnterEvent* event);
+    void dropEvent(QDropEvent *event);
 private:
+    void openFilePath(QString fileName);
+
     Ui::MainWindow *ui;
     LogStatistics *m_stats;
     QTimer m_quickFilterEdited;

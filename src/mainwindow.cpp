@@ -15,6 +15,7 @@
 #include <QSettings>
 #include <QKeyEvent>
 #include <QDesktopServices>
+#include <QMimeData>
 
 #include <QPainter>
 #ifdef _WIN32
@@ -352,6 +353,8 @@ MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
     connect(ui->menu_Disconnect_Client, &QMenu::aboutToShow, this, &MainWindow::buildClientsMenu);
 
     connect(ui->actionAboutQt, &QAction::triggered, qApp, &QApplication::aboutQt);
+
+    setAcceptDrops(true);
 }
 
 MainWindow::~MainWindow()
@@ -531,6 +534,11 @@ void MainWindow::openFile()
         return;
     }
     QSettings().setValue("lastDir", QFileInfo(fileName).path());
+    openFilePath(fileName);
+}
+
+void MainWindow::openFilePath(QString fileName)
+{
     auto model = dynamic_cast<LogModel*>(ui->tableView->sourceModel());
     if (model && !model->isListening())
     {
@@ -661,17 +669,17 @@ void MainWindow::showSettings()
 void MainWindow::showAboutDialog()
 {
     QMessageBox::about(this, "EVE LogLite",
-        "EVE LogLite server version " APP_VERSION "\n"
-        "\n"
-        "Copyright © 2015, 2016 CCP hf.\n"
-        "\n"
-        "Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n"
-        "\n"
-        "The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n"
-        "\n"
-        "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.\n"
-        "\n"
-        "Source code is available at https://github.com/ccpgames/EveLogLite"
+        "EVE LogLite server version " APP_VERSION ", build <a href=\"https://github.com/ccpgames/EveLogLite/commit/" GIT_VERSION "\">" GIT_VERSION "</a><br/>"
+        "<br/>"
+        "Copyright © 2015, 2016 CCP hf.<br/>"
+        "<br/>"
+        "Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:<br/>"
+        "<br/>"
+        "The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.<br/>"
+        "<br/>"
+        "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.<br/>"
+        "<br/>"
+        "Source code is available at <a href=\"https://github.com/ccpgames/EveLogLite\">https://github.com/ccpgames/EveLogLite</a>"
     );
 }
 
@@ -904,5 +912,54 @@ void MainWindow::disconnectClient()
         auto action = static_cast<QAction*>(sender());
         auto socket = reinterpret_cast<QTcpSocket*>(action->property("socket").toULongLong());
         model->disconnect(LogModel::Client(socket));
+    }
+}
+
+void MainWindow::dragEnterEvent(QDragEnterEvent* event)
+{
+    const QMimeData* mimeData = event->mimeData();
+    if (mimeData->hasUrls())
+    {
+        bool accept = true;
+
+        QList<QUrl> urlList = mimeData->urls();
+        for (int i = 0; i < urlList.size(); ++i)
+        {
+            if (!urlList.at(i).isLocalFile())
+            {
+                accept = false;
+                break;
+            }
+            auto path = urlList.at(i).toLocalFile();
+            if (!path.toLower().endsWith(".lsw"))
+            {
+                accept = false;
+                break;
+            }
+        }
+        if (accept)
+        {
+            event->acceptProposedAction();
+        }
+    }
+}
+
+void MainWindow::dropEvent(QDropEvent *event)
+{
+    const QMimeData* mimeData = event->mimeData();
+    if (mimeData->hasUrls())
+    {
+        QList<QUrl> urlList = mimeData->urls();
+        for (int i = 0; i < urlList.size(); ++i)
+        {
+            if (urlList.at(i).isLocalFile())
+            {
+                auto path = urlList.at(i).toLocalFile();
+                if (path.toLower().endsWith(".lsw"))
+                {
+                    openFilePath(path);
+                }
+            }
+        }
     }
 }

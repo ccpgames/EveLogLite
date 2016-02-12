@@ -14,6 +14,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = LogLite
 TEMPLATE = app
 
+GIT_VERSION = $$system(git --git-dir $$PWD/../.git --work-tree $$PWD/.. describe --always --tags)
 
 SOURCES += main.cpp\
         mainwindow.cpp \
@@ -64,6 +65,7 @@ CONFIG += c++11
 
 VERSION = 1.4
 DEFINES += APP_VERSION=\\\"$$VERSION\\\"
+DEFINES += GIT_VERSION=\\\"$$GIT_VERSION\\\"
 
 QMAKE_TARGET_COMPANY = CCP
 QMAKE_TARGET_PRODUCT = LogLite

@@ -1,6 +1,7 @@
 #include "logmonitorfilemodel.h"
 #include <QtSql>
 #include <QDebug>
+#include <QMessageBox>
 
 LogMonitorFileModel::LogMonitorFileModel(const QString &dbPath, QObject *parent)
     :AbstractLogModel(parent)
@@ -11,33 +12,46 @@ LogMonitorFileModel::LogMonitorFileModel(const QString &dbPath, QObject *parent)
     m_statistics.info = 0;
     m_statistics.clients = 0;
 
+    QFile f(dbPath);
+    if (!f.exists())
+    {
+        QMessageBox msg;
+        msg.setIcon(QMessageBox::Warning);
+        msg.setText("File not found");
+        msg.setInformativeText(QString("Could not find file %1").arg(dbPath));
+        msg.exec();
+        return;
+    }
+
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
     db.setDatabaseName(dbPath);
     auto success = db.open();
-    if (success)
+    if (!success)
     {
-        qDebug() << "DB opened";
-    }
-    else
-    {
-        qDebug() << "DB open failed";
         auto e = db.lastError();
-        qDebug() << e.text();
+
+        QMessageBox msg;
+        msg.setIcon(QMessageBox::Warning);
+        msg.setText("Open failed");
+        msg.setInformativeText(QString("Failed to open the file %1.\nError message: %2").arg(dbPath, e.text()));
+        msg.exec();
+        return;
     }
     QSqlQuery query("SELECT m.time, m.pid, m.level, h.name, c.facility, c.object, m.message, p.process"
                     " FROM messages AS m INNER JOIN hosts AS h ON m.host=h.id INNER JOIN channels AS c ON m.channel=c.id INNER JOIN processes AS p ON m.pid=p.id",
                     db);
     query.setForwardOnly(true);
     success = query.exec();
-    if (success)
+    if (!success)
     {
-        qDebug() << "DB opened";
-    }
-    else
-    {
-        qDebug() << "DB open failed";
         auto e = db.lastError();
-        qDebug() << e.text();
+
+        QMessageBox msg;
+        msg.setIcon(QMessageBox::Warning);
+        msg.setText("Open failed");
+        msg.setInformativeText(QString("Failed to open the file %1.\nError message: %2").arg(dbPath, e.text()));
+        msg.exec();
+        return;
     }
     while (query.next())
     {
