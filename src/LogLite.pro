@@ -14,7 +14,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = LogLite
 TEMPLATE = app
 
-GIT_VERSION = $$system(git --git-dir "$$_PRO_FILE_PWD_/../.git" --work-tree "$$_PRO_FILE_PWD_/.." describe --always --tags)
+GIT_VERSION = $$system(git --git-dir \"$$_PRO_FILE_PWD_/../.git\" --work-tree \"$$_PRO_FILE_PWD_/..\" describe --always --tags)
 
 SOURCES += main.cpp\
         mainwindow.cpp \
