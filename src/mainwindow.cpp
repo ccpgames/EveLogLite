@@ -16,6 +16,7 @@
 #include <QKeyEvent>
 #include <QDesktopServices>
 #include <QMimeData>
+#include <QFontDatabase>
 
 #include <QPainter>
 #ifdef _WIN32
@@ -183,6 +184,9 @@ MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
     ui->tableView->horizontalHeader()->setStretchLastSection(false);
     ui->tableView->horizontalHeader()->setSectionResizeMode(6, QHeaderView::Stretch);
     ui->tableView->horizontalHeader()->setSectionsMovable(true);
+    const QFont fixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    ui->tableView->setFont(fixedFont);
+    ui->messageText->setFont(fixedFont);
     auto order = settings.value("columnOrder").toByteArray();
     for (int i = 0; i < order.size(); ++i)
     {
