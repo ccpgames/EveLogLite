@@ -25,6 +25,7 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
         ui->autoSaveDirectory->setText(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation));
     }
     ui->timestampFormat->setCurrentIndex(settings.value("timestampPrecision", 0).toInt());
+    ui->monospaceFont->setChecked(settings.value("monospaceFont", 0).toBool());
 
     connect(ui->browseAutoSave, &QPushButton::clicked, this, &SettingsDialog::browseForAutoSaveDirectory);
 }
@@ -57,6 +58,7 @@ void SettingsDialog::accept()
     settings.setValue("maxMessages", ui->maxMessages->value());
     settings.setValue("autoSaveDirectory", ui->autoSaveDirectory->text());
     settings.setValue("timestampPrecision", ui->timestampFormat->currentIndex());
+    settings.setValue("monospaceFont", ui->monospaceFont->isChecked());
     QDialog::accept();
 }
 

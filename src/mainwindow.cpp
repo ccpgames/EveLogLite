@@ -117,11 +117,14 @@ void findPaths(const QString& string, QList<PathRec>& paths)
 MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
-    m_taskbarButton(nullptr)
+    m_taskbarButton(nullptr),
+    m_monospaceFont(false)
 {
     ui->setupUi(this);
 
     QSettings settings;
+
+    m_monospaceFont = settings.value("monospaceFont", 0).toBool();
 
     AbstractLogModel *model;
     if (fileName.isEmpty())
@@ -395,7 +398,14 @@ void MainWindow::itemSelected()
             text.insert(rec.start + rec.length, "</a>");
             text.insert(rec.start, QString("<a href=\"%1\">").arg(rec.path.toHtmlEscaped()));
         }
-        ui->messageText->setHtml(text.replace("\n", "<br/>"));
+        if (m_monospaceFont)
+        {
+            ui->messageText->setHtml("<pre>" + text + "</pre>");
+        }
+        else
+        {
+            ui->messageText->setHtml(text.replace("\n", "<br/>"));
+        }
     }
     else
     {
@@ -661,6 +671,8 @@ void MainWindow::showSettings()
                     logModel->setMaxMessages(settings.value("maxMessages").toInt());
                 }
                 model->setTimestampPrecision(TimestampPrecision(settings.value("timestampPrecision", 0).toInt()));
+                wnd->m_monospaceFont = settings.value("monospaceFont", 0).toBool();
+                wnd->itemSelected();
             }
         }
     }
