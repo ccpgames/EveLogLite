@@ -135,7 +135,7 @@
      <item row="5" column="0">
       <widget class="QLabel" name="label_6">
        <property name="text">
-        <string>Use mono-space font for details pane</string>
+        <string>Use mono-space font</string>
        </property>
       </widget>
      </item>

@@ -16,6 +16,7 @@
 #include <QKeyEvent>
 #include <QDesktopServices>
 #include <QMimeData>
+#include <QFontDatabase>
 
 #include <QPainter>
 #ifdef _WIN32
@@ -125,6 +126,11 @@ MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
     QSettings settings;
 
     m_monospaceFont = settings.value("monospaceFont", 0).toBool();
+    if (m_monospaceFont)
+    {
+        const QFont fixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+        ui->tableView->setFont(fixedFont);
+    }
 
     AbstractLogModel *model;
     if (fileName.isEmpty())
@@ -673,6 +679,8 @@ void MainWindow::showSettings()
                 model->setTimestampPrecision(TimestampPrecision(settings.value("timestampPrecision", 0).toInt()));
                 wnd->m_monospaceFont = settings.value("monospaceFont", 0).toBool();
                 wnd->itemSelected();
+                const QFont font = QFontDatabase::systemFont(wnd->m_monospaceFont ? QFontDatabase::FixedFont : QFontDatabase::GeneralFont);
+                ui->tableView->setFont(font);
             }
         }
     }
