@@ -208,6 +208,11 @@ MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
     ui->noticeFilter->setChecked(settings.value("quickFilter/notice", true).toBool());
     ui->infoFilter->setChecked(settings.value("quickFilter/info", true).toBool());
 
+    ui->errorFilter->setToolTip("error");
+    ui->warningFilter->setToolTip("warning");
+    ui->noticeFilter->setToolTip("notice");
+    ui->infoFilter->setToolTip("info");
+
     if (settings.contains("customFilter"))
     {
         auto name = settings.value("customFilter").toString();
