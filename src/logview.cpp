@@ -4,6 +4,8 @@
 LogView::LogView(QWidget *parent)
     :QTableView(parent)
 {
+    connect(&m_autoScroll, &QTimer::timeout, this, &LogView::scrollToSelected);
+    m_autoScroll.setSingleShot(true);
 }
 
 void LogView::setModel(QAbstractItemModel *newModel)
@@ -16,6 +18,7 @@ void LogView::setModel(QAbstractItemModel *newModel)
     if (newModel)
     {
         connect(newModel, &QAbstractItemModel::rowsInserted, this, &LogView::autoScroll);
+        connect(newModel, &QAbstractItemModel::rowsRemoved, this, &LogView::autoScroll);
     }
 }
 
@@ -96,11 +99,24 @@ void LogView::previousNotice()
     previousSeverity(SEVERITY_NOTICE);
 }
 
-void LogView::autoScroll()
+void LogView::scrollToSelected()
+{
+    scrollTo(currentIndex());
+    m_autoScroll.stop();
+}
+
+void LogView::autoScroll(const QModelIndex &, int first, int)
 {
     if (currentIndex().row() == model()->rowCount() - 1)
     {
         scrollToBottom();
+    }
+    else if (first < currentIndex().row())
+    {
+        if (!m_autoScroll.isActive())
+        {
+            m_autoScroll.start();
+        }
     }
 }
 

@@ -2,6 +2,7 @@
 #define LOGVIEW_H
 
 #include <QTableView>
+#include <QTimer>
 #include "abstractlogmodel.h"
 
 class LogView : public QTableView
@@ -35,8 +36,11 @@ public slots:
     void selectNextMatching(QString text);
     void selectPreviousMatching(QString text);
 private slots:
-    void autoScroll();
+    void autoScroll(const QModelIndex &parent, int first, int last);
+    void scrollToSelected();
 private:
+    QTimer m_autoScroll;
+
     void nextSeverity(LogSeverity);
     void previousSeverity(LogSeverity);
 };
