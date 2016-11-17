@@ -8,6 +8,7 @@ int main(int argc, char *argv[])
     a.setOrganizationDomain("ccpgames.com");
     a.setApplicationName("LogLite");
     a.setApplicationVersion(APP_VERSION);
+    a.setAttribute(Qt::AA_EnableHighDpiScaling);
     MainWindow w(argc > 1 ? argv[1] : "");
     w.show();
 
