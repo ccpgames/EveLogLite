@@ -1,6 +1,7 @@
 #!/bin/sh
 
 mkdir icon.iconset
+ls icon.iconset
 
 cp 16.png icon.iconset/icon_16x16.png
 cp 32.png icon.iconset/icon_16x16@2x.png
@@ -15,5 +16,6 @@ cp 512.png icon.iconset/icon_256x256@2x.png
 cp 512.png icon.iconset/icon_512x512.png
 cp 1024.png icon.iconset/icon_512x512@2x.png
 
-iconutil -c ../../icon.icns icon.iconset
+iconutil -c icns -o ../../icon.icns icon.iconset
 rm -R icon.iconset
+
