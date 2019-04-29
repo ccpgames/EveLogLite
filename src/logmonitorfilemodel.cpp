@@ -269,5 +269,13 @@ bool LogMonitorFileModel::saveModel(AbstractLogModel *model, const QString& file
     }
     QSqlDatabase::removeDatabase("QSQLITE");
 
+    QFile dest(fileName);
+    if (dest.exists())
+    {
+        if (!dest.remove())
+        {
+            return false;
+        }
+    }
     return tempFile.copy(fileName);
 }
