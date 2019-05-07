@@ -67,6 +67,7 @@ private:
 
     QTcpServer m_server;
     LogMessage *m_nextMessage;
+    QByteArray m_receivedText;
     Statistics m_statistics;
     int m_maxMessages;
     QString m_autoSaveDirectory;

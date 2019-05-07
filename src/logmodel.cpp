@@ -275,7 +275,6 @@ void LogModel::readMessages()
 {
     auto socket = static_cast<QTcpSocket*>(sender());
     RawLogMessage msg;
-    QByteArray all_text = QByteArray();
     int count = m_messages.size();
     while (socket->bytesAvailable() >= qint64(sizeof(msg)))
     {
@@ -319,12 +318,12 @@ void LogModel::readMessages()
             m_nextMessage->module = QString::fromLocal8Bit(msg.text.module);
             m_nextMessage->channel = QString::fromLocal8Bit(msg.text.channel);
         }
-        all_text.append(msg.text.message);
+        m_receivedText.append(msg.text.message);
 
         if (msg.type == SIMPLE_MESSAGE || msg.type == CONTINUATION_END_MESSAGE)
         {
-            m_nextMessage->message = QString::fromLocal8Bit(all_text);
-            all_text.clear();
+            m_nextMessage->message = QString::fromLocal8Bit(m_receivedText);
+            m_receivedText.clear();
             addMessage(m_nextMessage);
             m_runningCounts[m_nextMessage->severity].add();
             switch (m_nextMessage->severity)
