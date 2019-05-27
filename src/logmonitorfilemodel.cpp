@@ -103,18 +103,22 @@ bool LogMonitorFileModel::isListening() const
 
 void LogMonitorFileModel::clear()
 {
+    if (!m_messages.size())
+    {
+        return;
+    }
     beginRemoveRows(QModelIndex(), 0, m_messages.size() - 1);
     for (int i = 0; i < m_messages.size(); ++i)
     {
         delete m_messages[i];
     }
     m_messages.clear();
-    endRemoveRows();
 
     m_statistics.error = 0;
     m_statistics.warning = 0;
     m_statistics.notice = 0;
     m_statistics.info = 0;
+    endRemoveRows();
 }
 
 bool LogMonitorFileModel::saveModel(AbstractLogModel *model, const QString& fileName)
