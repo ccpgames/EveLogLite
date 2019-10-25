@@ -26,6 +26,7 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
     }
     ui->timestampFormat->setCurrentIndex(settings.value("timestampPrecision", 0).toInt());
     ui->monospaceFont->setChecked(settings.value("monospaceFont", 0).toBool());
+    ui->darkMode->setChecked(settings.value("darkMode", 0).toBool());
 
     connect(ui->browseAutoSave, &QPushButton::clicked, this, &SettingsDialog::browseForAutoSaveDirectory);
 }
@@ -59,6 +60,7 @@ void SettingsDialog::accept()
     settings.setValue("autoSaveDirectory", ui->autoSaveDirectory->text());
     settings.setValue("timestampPrecision", ui->timestampFormat->currentIndex());
     settings.setValue("monospaceFont", ui->monospaceFont->isChecked());
+    settings.setValue("darkMode", ui->darkMode->isChecked());
     QDialog::accept();
 }
 

@@ -17,6 +17,7 @@
 #include <QDesktopServices>
 #include <QMimeData>
 #include <QFontDatabase>
+#include <QStyleFactory>
 
 #include <QPainter>
 #ifdef _WIN32
@@ -121,9 +122,39 @@ MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
     m_taskbarButton(nullptr),
     m_monospaceFont(false)
 {
-    ui->setupUi(this);
-
     QSettings settings;
+
+    bool useDarkMode = settings.value("darkMode", 0).toBool();
+#ifdef Q_OS_WIN
+    QSettings s("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", QSettings::NativeFormat);
+    if (s.value("AppsUseLightTheme") == 0)
+        useDarkMode = true;
+#endif
+
+    if (useDarkMode)
+    {
+        qApp->setStyle(QStyleFactory::create("Fusion"));
+
+        QPalette darkPalette;
+        darkPalette.setColor(QPalette::Window, QColor(53,53,53));
+        darkPalette.setColor(QPalette::WindowText, Qt::white);
+        darkPalette.setColor(QPalette::Base, QColor(25,25,25));
+        darkPalette.setColor(QPalette::AlternateBase, QColor(53,53,53));
+        darkPalette.setColor(QPalette::ToolTipBase, Qt::white);
+        darkPalette.setColor(QPalette::ToolTipText, Qt::white);
+        darkPalette.setColor(QPalette::Text, Qt::white);
+        darkPalette.setColor(QPalette::Button, QColor(53,53,53));
+        darkPalette.setColor(QPalette::ButtonText, Qt::white);
+        darkPalette.setColor(QPalette::BrightText, Qt::red);
+        darkPalette.setColor(QPalette::Link, QColor(42, 130, 218));
+        darkPalette.setColor(QPalette::Highlight, QColor(42, 130, 218));
+        darkPalette.setColor(QPalette::HighlightedText, Qt::black);
+
+        qApp->setPalette(darkPalette);
+        qApp->setStyleSheet("QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }");
+    }
+
+    ui->setupUi(this);
 
     m_monospaceFont = settings.value("monospaceFont", 0).toBool();
     if (m_monospaceFont)
