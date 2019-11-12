@@ -8,7 +8,8 @@ AbstractLogModel::AbstractLogModel(QObject* parent)
       m_breakLines(false),
       m_splitByPids(false),
       m_timestampPrecision(PRECISION_MINUTES),
-      m_colorBackground(COLOR_NONE)
+      m_colorBackground(COLOR_NONE),
+      m_colorTheme(THEME_LIGHT)
 {
     m_logTypes.resize(SEVERITY_COUNT);
     m_logTypes[SEVERITY_INFO] = QPixmap(":/default/info");
@@ -42,9 +43,14 @@ void AbstractLogModel::setBreakLines(bool breakLines)
 void AbstractLogModel::setColorBackground(LogColorBackground colorBackground)
 {
     m_colorBackground = colorBackground;
-    QVector<int> roles;
-    roles.append(Qt::BackgroundColorRole);
-    dataChanged(index(0, 0), index(rowCount() - 1, columnCount() - 1), roles);
+    refreshColorBackgroundTheme();
+}
+
+void AbstractLogModel::setColorTheme(LogColorTheme colorTheme)
+{
+    m_colorTheme = colorTheme;
+    refreshColorBackgroundTheme();
+
 }
 
 void AbstractLogModel::setSplitByPid(bool split)
@@ -145,19 +151,19 @@ QVariant AbstractLogModel::data(const QModelIndex & index, int role) const
             switch (message.severity)
             {
             case SEVERITY_ERR:
-                return QColor(242, 222, 222);
+                return m_colorTheme == THEME_LIGHT ? QColor(242, 222, 222) : QColor(133, 52, 52);
             case SEVERITY_WARN:
-                return QColor(252, 248, 227);
+                return m_colorTheme == THEME_LIGHT ? QColor(252, 248, 227) : QColor(173, 150, 18);
             case SEVERITY_NOTICE:
                 if (m_colorBackground == COLOR_ALL)
                 {
-                    return QColor(223, 240, 216);
+                    return m_colorTheme == THEME_LIGHT ? QColor(223, 240, 216) : QColor(75, 132, 51);
                 }
                 return QVariant();
             case SEVERITY_INFO:
                 if (m_colorBackground == COLOR_ALL)
                 {
-                    return QColor(217, 237, 247);
+                    return m_colorTheme == THEME_LIGHT ? QColor(217, 237, 247) : QColor(32, 114, 153);
                 }
                 return QVariant();
             default:
@@ -297,6 +303,13 @@ void AbstractLogModel::addMessage(LogMessage* message)
             endInsertColumns();
         }
     }
+}
+
+void AbstractLogModel::refreshColorBackgroundTheme()
+{
+    QVector<int> roles;
+    roles.append(Qt::BackgroundColorRole);
+    dataChanged(index(0, 0), index(rowCount() - 1, columnCount() - 1), roles);
 }
 
 void AbstractLogModel::explodeMessages()
