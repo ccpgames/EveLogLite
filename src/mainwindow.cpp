@@ -124,10 +124,12 @@ MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
 {
     QSettings settings;
 
+    bool darkTheme = false;
 #ifdef Q_OS_WIN
     QSettings s("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", QSettings::NativeFormat);
+    darkTheme = s.value("AppsUseLightTheme") == 0;
 
-    if (s.value("AppsUseLightTheme") == 0)
+    if (darkTheme)
     {
         qApp->setStyle(QStyleFactory::create("Fusion"));
 
@@ -186,6 +188,7 @@ MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
     }
     model->setBreakLines(settings.value("breakLines", 0).toBool());
     model->setColorBackground(LogColorBackground(settings.value("colorBackground", 0).toInt()));
+    model->setColorTheme(LogColorTheme(darkTheme));
     model->setTimestampPrecision(TimestampPrecision(settings.value("timestampPrecision", 0).toInt()));
 
     auto filtered = new LogFilter(this);

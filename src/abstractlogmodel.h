@@ -52,6 +52,12 @@ enum LogColorBackground
     COLOR_ALL,
 };
 
+enum LogColorTheme
+{
+    THEME_LIGHT,
+    THEME_DARK,
+};
+
 enum TimestampPrecision
 {
     PRECISION_MINUTES,
@@ -81,6 +87,7 @@ public:
 
     void setBreakLines(bool breakLines);
     void setColorBackground(LogColorBackground colorBackground);
+    void setColorTheme(LogColorTheme colorTheme);
 
     void setSplitByPid(bool split);
     bool splitByPid() const;
@@ -97,6 +104,7 @@ protected:
     QVector<LogMessage*> m_messages;
     bool m_breakLines;
 private:
+    void refreshColorBackgroundTheme();
     void explodeMessages();
     void collapseMessages();
 
@@ -105,6 +113,7 @@ private:
     bool m_splitByPids;
     TimestampPrecision m_timestampPrecision;
     LogColorBackground m_colorBackground;
+    LogColorTheme m_colorTheme;
 public slots:
     virtual void clear() = 0;
 };
