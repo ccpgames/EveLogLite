@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
     a.setOrganizationDomain("ccpgames.com");
     a.setApplicationName("LogLite");
     a.setApplicationVersion(APP_VERSION);
-    MainWindow w(argc > 1 ? argv[1] : "");
+    MainWindow w(a.arguments().value(1));
     w.show();
 
     return a.exec();
