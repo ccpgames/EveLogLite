@@ -322,7 +322,7 @@ void LogModel::readMessages()
 
         if (msg.type == SIMPLE_MESSAGE || msg.type == CONTINUATION_END_MESSAGE)
         {
-            m_nextMessage->message = QString::fromLocal8Bit(m_receivedText);
+            m_nextMessage->message = QString::fromUtf8(m_receivedText.constData());
             m_receivedText.clear();
             addMessage(m_nextMessage);
             m_runningCounts[m_nextMessage->severity].add();
