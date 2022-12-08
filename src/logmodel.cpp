@@ -305,7 +305,7 @@ void LogModel::readMessages()
             m_nextMessage = new LogMessage;
             if (socket->property("version") == 1)
             {
-                m_nextMessage->timestamp = QDateTime::fromTime_t(msg.text.timestamp);
+                m_nextMessage->timestamp = QDateTime::fromSecsSinceEpoch(msg.text.timestamp);
             }
             else
             {

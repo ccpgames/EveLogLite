@@ -7,8 +7,12 @@ LogLite is a client log viewer developed by [CCP Games] (https://www.ccpgames.co
 ## Build Instructions
 -------------------
 
-* Requires Qt 5+ (http://www.qt.io/)
-* Get source code and build with 'qmake && make'
+* Requires Qt 6.4 or newer (http://www.qt.io/)
+* Get source code and build with:
+```
+> cmake -S . -B .build-folder -DCMAKE_OSX_ARCHITECTURES=x86_64;arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=10.14
+> cmake --build .build-folder --target LogLite --parallel
+```
 
 
 
@@ -22,4 +26,3 @@ All files in this project are under the [LICENSE](LICENSE) license unless otherw
 -------------------
 
 Filipp Pavlov - Team TriLambda
-
