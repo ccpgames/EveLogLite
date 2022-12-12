@@ -133,6 +133,30 @@ if(WIN32)
     )
 endif()
 
+if(APPLE)
+    set(ICONSET "${CMAKE_BINARY_DIR}/icon.icns")
+    execute_process(
+        COMMAND_ERROR_IS_FATAL ANY
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/icon.iconset/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resources/icon/16.png ${CMAKE_BINARY_DIR}/icon.iconset/icon_16x16.png
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resources/icon/32.png ${CMAKE_BINARY_DIR}/icon.iconset/icon_16x16@2x.png
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resources/icon/32.png ${CMAKE_BINARY_DIR}/icon.iconset/icon_32x32.png
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resources/icon/64.png ${CMAKE_BINARY_DIR}/icon.iconset/icon_32x32@2x.png
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resources/icon/64.png ${CMAKE_BINARY_DIR}/icon.iconset/icon_64x64.png
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resources/icon/128.png ${CMAKE_BINARY_DIR}/icon.iconset/icon_64x64@2x.png
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resources/icon/128.png ${CMAKE_BINARY_DIR}/icon.iconset/icon_128x128.png
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resources/icon/256.png ${CMAKE_BINARY_DIR}/icon.iconset/icon_128x128@2x.png
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resources/icon/256.png ${CMAKE_BINARY_DIR}/icon.iconset/icon_256x256.png
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resources/icon/512.png ${CMAKE_BINARY_DIR}/icon.iconset/icon_256x256@2x.png
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resources/icon/512.png ${CMAKE_BINARY_DIR}/icon.iconset/icon_512x512.png
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resources/icon/1024.png ${CMAKE_BINARY_DIR}/icon.iconset/icon_512x512@2x.png
+        COMMAND iconutil -c icns -o ${ICONSET} ${CMAKE_BINARY_DIR}/icon.iconset
+    )
+    set(MACOSX_BUNDLE_ICON_FILE icon.icns)
+    set_source_files_properties(${ICONSET} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+    target_sources(LogLite PUBLIC ${ICONSET})
+endif()
+
 if((QT_VERSION_MAJOR GREATER 4))
     target_link_libraries(LogLite PUBLIC
         Qt::Widgets
