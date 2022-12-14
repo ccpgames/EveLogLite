@@ -116,7 +116,6 @@ void findPaths(const QString& string, QList<PathRec>& paths)
 MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
-    m_taskbarButton(nullptr),
     m_monospaceFont(false)
 {
     QSettings settings;
@@ -371,14 +370,6 @@ MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
     {
         ui->tableView->selectionModel()->setCurrentIndex(ui->tableView->model()->index(0, 0), QItemSelectionModel::SelectCurrent|QItemSelectionModel::Rows);
     }
-
-#ifdef _WIN32
-    auto timer = new QTimer(this);
-    connect(timer, &QTimer::timeout, this, &MainWindow::updateTaskbarIcon);
-    timer->start(1000);
-
-    generateOverlayIcons(m_icons);
-#endif
 
     connect(ui->actionEditFilters, &QAction::triggered, this, &MainWindow::editFilters);
     connect(ui->actionEditHighlights, &QAction::triggered, this, &MainWindow::editHighlights);
@@ -742,23 +733,6 @@ void MainWindow::showAboutDialog()
     );
 }
 
-void MainWindow::updateTaskbarIcon()
-{
-#ifdef _WIN32
-    if (auto model = dynamic_cast<LogModel*>(ui->tableView->sourceModel()))
-    {
-        int warnings = std::min(model->getRunningCount(SEVERITY_WARN) * 2, 9);
-        int errors = std::min(model->getRunningCount(SEVERITY_ERR) * 2, 9);
-
-        if (!m_taskbarButton)
-        {
-            m_taskbarButton = new QWinTaskbarButton(this);
-            m_taskbarButton->setWindow(windowHandle());
-        }
-        m_taskbarButton->setOverlayIcon(m_icons[errors + 10 * warnings]);
-    }
-#endif
-}
 
 void MainWindow::editFilters()
 {

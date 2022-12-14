@@ -1,6 +1,6 @@
 # Generated from LogLite.pro.
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.21)
 project(LogLite VERSION 1.4.3 LANGUAGES CXX)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -15,8 +15,7 @@ endif()
 set(INSTALL_EXAMPLEDIR "${INSTALL_EXAMPLESDIR}")
 
 find_package(QT NAMES Qt5 Qt6 REQUIRED COMPONENTS Core)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Gui Network Sql)
-find_package(Qt${QT_VERSION_MAJOR} OPTIONAL_COMPONENTS Widgets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Gui Network Sql Widgets)
 
 qt_add_executable(LogLite WIN32 MACOSX_BUNDLE
     abstractlogmodel.cpp abstractlogmodel.h
@@ -49,6 +48,7 @@ target_link_libraries(LogLite PUBLIC
     Qt::Gui
     Qt::Network
     Qt::Sql
+    Qt::Widgets
 )
 
 
@@ -127,12 +127,6 @@ qt6_add_resources(LogLite "resources"
         ${resources_resource_files}
 )
 
-if(WIN32)
-    target_link_libraries(LogLite PUBLIC
-        Qt::WinExtras
-    )
-endif()
-
 if(APPLE)
     set(ICONSET "${CMAKE_BINARY_DIR}/icon.icns")
     execute_process(
@@ -155,12 +149,6 @@ if(APPLE)
     set(MACOSX_BUNDLE_ICON_FILE icon.icns)
     set_source_files_properties(${ICONSET} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
     target_sources(LogLite PUBLIC ${ICONSET})
-endif()
-
-if((QT_VERSION_MAJOR GREATER 4))
-    target_link_libraries(LogLite PUBLIC
-        Qt::Widgets
-    )
 endif()
 
 install(TARGETS LogLite

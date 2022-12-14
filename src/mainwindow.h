@@ -8,7 +8,6 @@
 
 class SearchBox;
 class LogStatistics;
-class QWinTaskbarButton;
 
 namespace Ui {
 class MainWindow;
@@ -34,8 +33,6 @@ private:
     Ui::MainWindow *ui;
     LogStatistics *m_stats;
     QTimer m_quickFilterEdited;
-    QIcon m_icons[10 * 10];
-    QWinTaskbarButton* m_taskbarButton;
     bool m_monospaceFont;
 private slots:
     void itemSelected();
@@ -66,8 +63,6 @@ private slots:
     void splitByPids();
     void showSettings();
     void showAboutDialog();
-
-    void updateTaskbarIcon();
 
     void editFilters();
     void editHighlights();
