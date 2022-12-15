@@ -38,9 +38,27 @@ qt_add_executable(LogLite WIN32 MACOSX_BUNDLE
     overlaylayout.cpp overlaylayout.h
     settingsdialog.cpp settingsdialog.h settingsdialog.ui
 )
+
+if(NOT GIT_FOUND)
+    find_package(Git)
+endif()
+if(GIT_FOUND)
+    get_target_property(TARGET_SOURCE_DIR LogLite SOURCE_DIR)
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+        WORKING_DIRECTORY ${TARGET_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_COMMIT_HASH
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+else()
+    message(WARNING "Git was not found, version information will not contain git details")
+endif()
+if(NOT GIT_COMMIT_HASH)
+    set(GIT_COMMIT_HASH "Unknown commit")
+endif()
+
 target_compile_definitions(LogLite PUBLIC
     APP_VERSION="${CMAKE_PROJECT_VERSION}"
-    GIT_VERSION="FIXME"
+    GIT_VERSION="${GIT_COMMIT_HASH}"
 )
 
 target_link_libraries(LogLite PUBLIC
@@ -50,7 +68,6 @@ target_link_libraries(LogLite PUBLIC
     Qt::Sql
     Qt::Widgets
 )
-
 
 # Resources:
 set_source_files_properties("resources/Counter.png"
