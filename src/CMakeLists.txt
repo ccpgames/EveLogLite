@@ -17,6 +17,8 @@ set(INSTALL_EXAMPLEDIR "${INSTALL_EXAMPLESDIR}")
 find_package(QT NAMES Qt5 Qt6 REQUIRED COMPONENTS Core)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Gui Network Sql Widgets)
 
+set(app_icon_resource_windows "${CMAKE_CURRENT_SOURCE_DIR}/LogLite_resource.rc")
+
 qt_add_executable(LogLite WIN32 MACOSX_BUNDLE
     abstractlogmodel.cpp abstractlogmodel.h
     filter.ui
@@ -37,6 +39,7 @@ qt_add_executable(LogLite WIN32 MACOSX_BUNDLE
     mainwindow.cpp mainwindow.h mainwindow.ui
     overlaylayout.cpp overlaylayout.h
     settingsdialog.cpp settingsdialog.h settingsdialog.ui
+    ${app_icon_resource_windows}
 )
 
 if(NOT GIT_FOUND)

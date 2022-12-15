@@ -3,7 +3,7 @@
 # else
 #  include <windows.h>
 # endif
-
+IDI_ICON1               ICON    "resources/icon.ico"
 VS_VERSION_INFO VERSIONINFO
 	FILEVERSION 1,2,0,0
 	PRODUCTVERSION 1,2,0,0
@@ -36,4 +36,3 @@ VS_VERSION_INFO VERSIONINFO
 		END
 	END
 /* End of Version info */
-
