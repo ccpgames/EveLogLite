@@ -106,7 +106,6 @@ void QLogLiteLogger::log(LogSeverity severity, QDateTime timestamp, QString modu
     msg.text.severity = severity;
     fillString(msg.text.channel, channel);
     fillString(msg.text.module, module);
-    fillString(msg.text.channel, channel);
 
     QByteArray text = message.toLocal8Bit();
     if (text.size() >= TextMessage::TEXT_SIZE)
