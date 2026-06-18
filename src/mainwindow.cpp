@@ -17,6 +17,7 @@
 #include <QDesktopServices>
 #include <QMimeData>
 #include <QFontDatabase>
+#include <QStandardPaths>
 #include <QStyleFactory>
 
 #include <QPainter>
@@ -67,26 +68,26 @@ struct PathRec
 void findPaths(const QString& string, QList<PathRec>& paths)
 {
 #ifdef _WIN32
-    QRegExp rx("\\w:([/\\\\]+[\\w- \\.]+)+");
+    QRegularExpression rx("\\w:([/\\\\]+[\\w- \\.]+)+");
 #else
-    QRegExp rx("([/\\\\]+[\\w- \\.]+)+");
+    QRegularExpression rx("([/\\\\]+[\\w- \\.]+)+");
 #endif
-    QRegExp slash("[/\\\\]");
-    int pos = 0;
-    while ((pos = rx.indexIn(string, pos)) != -1)
+    QRegularExpression slash("[/\\\\]");
+    auto matches = rx.globalMatch(string);
+    for( auto match : matches )
     {
-        auto path = QFileInfo(rx.cap(0).trimmed());
+        auto path = QFileInfo(match.captured().trimmed());
         if (path.exists())
         {
             PathRec r;
             r.path = path.canonicalFilePath();
-            r.start = pos;
-            r.length = rx.matchedLength();
+            r.start = match.capturedStart();
+            r.length = match.capturedLength();
             paths.append(r);
         }
         else
         {
-            auto full = rx.cap(0);
+            auto full = match.captured();
             int p = full.lastIndexOf(slash);
 
             while (true)
@@ -102,7 +103,7 @@ void findPaths(const QString& string, QList<PathRec>& paths)
                 {
                     PathRec r;
                     r.path = path.canonicalFilePath();
-                    r.start = pos;
+                    r.start = match.capturedStart();
                     r.length = full.length();
                     paths.append(r);
                     break;
@@ -110,7 +111,6 @@ void findPaths(const QString& string, QList<PathRec>& paths)
                 p = p2;
             }
         }
-        pos += rx.matchedLength();
     }
 }
 
