@@ -22,7 +22,7 @@
 
 #include <QPainter>
 #ifdef _WIN32
-#include <QtWinExtras/QWinTaskbarButton>
+#include "wintaskbarbutton.h"
 #endif
 
 #include "settingsdialog.h"
@@ -41,22 +41,6 @@ const char* columnSettings[] = {
     "columns/channel",
     "columns/message",
 };
-
-void generateOverlayIcons(QIcon* icons)
-{
-    for (int warnings = 0; warnings < 10; ++warnings)
-    {
-        for (int errors = 0; errors < 10; ++errors)
-        {
-            QPixmap pm(16, 16);
-            pm.fill(Qt::transparent);
-            QPainter p(&pm);
-            p.fillRect(QRect(0, 15 - warnings, 8, warnings), QColor(255, 255, 0));
-            p.fillRect(QRect(8, 15 - errors, 8, errors), QColor(255, 0, 0));
-            icons[errors + 10 * warnings] = QIcon(pm);
-        }
-    }
-}
 
 struct PathRec
 {
@@ -380,7 +364,6 @@ MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
     connect(timer, &QTimer::timeout, this, &MainWindow::updateTaskbarIcon);
     timer->start(1000);
 
-    generateOverlayIcons(m_icons);
 #endif
 
     connect(ui->actionEditFilters, &QAction::triggered, this, &MainWindow::editFilters);
@@ -755,10 +738,10 @@ void MainWindow::updateTaskbarIcon()
 
         if (!m_taskbarButton)
         {
-            m_taskbarButton = new QWinTaskbarButton(this);
-            m_taskbarButton->setWindow(windowHandle());
+            m_taskbarButton = new WinTaskbarButton();
+            m_taskbarButton->setWindow(reinterpret_cast<HWND>( winId() ));
         }
-        m_taskbarButton->setOverlayIcon(m_icons[errors + 10 * warnings]);
+        m_taskbarButton->setOverlayIcon(warnings, errors);
     }
 #endif
 }

@@ -2,13 +2,12 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QModelIndex>
 #include <QTimer>
 #include "abstractlogmodel.h"
 
 class SearchBox;
 class LogStatistics;
-class QWinTaskbarButton;
+class WinTaskbarButton;
 
 namespace Ui {
 class MainWindow;
@@ -35,7 +34,7 @@ private:
     LogStatistics *m_stats;
     QTimer m_quickFilterEdited;
     QIcon m_icons[10 * 10];
-    QWinTaskbarButton* m_taskbarButton;
+    WinTaskbarButton* m_taskbarButton;
     bool m_monospaceFont;
 private slots:
     void itemSelected();

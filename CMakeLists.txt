@@ -31,6 +31,7 @@ qt_add_executable(LogLite WIN32 MACOSX_BUNDLE
         src/mainwindow.cpp include/mainwindow.h src/mainwindow.ui
         src/overlaylayout.cpp include/overlaylayout.h
         src/settingsdialog.cpp include/settingsdialog.h src/settingsdialog.ui
+        src/wintaskbarbutton.cpp include/wintaskbarbutton.h
         ${app_icon_resource_windows}
 )
 
@@ -142,9 +143,7 @@ qt6_add_resources(LogLite "resources"
 )
 
 if(WIN32)
-    target_link_libraries(LogLite PRIVATE
-            Qt::WinExtras
-    )
+    target_link_libraries(LogLite PRIVATE shell32)
 endif()
 
 if(APPLE)
