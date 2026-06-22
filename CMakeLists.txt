@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.31)
 project(LogLite VERSION 1.4.3 LANGUAGES CXX)
 
 include(cmake/CcpBuildConfigurations.cmake)
+include(cmake/CcpMonolithVendorConfig.cmake)
 include(cmake/CcpTargetConfigurations.cmake)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Network Sql Widgets)
@@ -169,3 +170,9 @@ if(APPLE)
     set_source_files_properties(${ICONSET} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
     target_sources(LogLite PUBLIC ${ICONSET})
 endif()
+
+install(
+    TARGETS LogLite
+    RUNTIME DESTINATION ${CCP_VENDOR_BIN_PATH}
+    BUNDLE DESTINATION ${CCP_VENDOR_BIN_PATH}
+)
