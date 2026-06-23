@@ -14,13 +14,13 @@ class UniversalBuild() : BuildType({
         param("carbon-pipeline-tools-ref", "refs/heads/main")
         param("universal-output-dir", "%system.teamcity.build.workingDir%/output_build")
         param("universal-lib-path", "lib/macOS/universal/AppleClang/")
-        param("universal-bin-path", "bin/macOS/universal/AppleClang/")
+        param("universal-bin-path", "LogLite.app/Contents/MacOS")
         param("x64-lib-path", "lib/macOS/x64")
         param("arm64-lib-path", "lib/macOS/arm64")
         param("x64-bin-path", "bin/macOS/x64")
         param("arm64-bin-path", "bin/macOS/arm64")
         text("file-matchers",
-            "-m '*.so:%system.teamcity.build.workingDir%/lib' -m '*.dylib:%system.teamcity.build.workingDir%/lib' -m '*.a:%system.teamcity.build.workingDir%/lib'",
+            "-m 'LogLite:%system.teamcity.build.workingDir%/bin'",
             label = "lipo-build matchers",
             description = """
             -m '*.so:lib' to tell the tool to lipo together .so files and output the fat binaries to lib/.
@@ -50,8 +50,8 @@ class UniversalBuild() : BuildType({
             name = "Populate output location"
             id = "populate_output_location"
             scriptContent = """
-                cp -r %system.teamcity.build.workingDir%/x64/* %universal-output-dir%/
-                cp -r %system.teamcity.build.workingDir%/arm64/* %universal-output-dir%/
+                cp -r %system.teamcity.build.workingDir%/x64/bin/macOS/x64/AppleClang/* %universal-output-dir%/
+                cp -r %system.teamcity.build.workingDir%/arm64/bin/macOS/arm64/AppleClang/* %universal-output-dir%/
             """.trimIndent()
         }
         python {
@@ -69,12 +69,8 @@ class UniversalBuild() : BuildType({
             name = "Prepare universal build artifact"
             id = "prep_artifact"
             scriptContent = """
-                mkdir -p   %universal-output-dir%/%universal-lib-path%
                 mkdir -p   %universal-output-dir%/%universal-bin-path%
-                cp %system.teamcity.build.workingDir%/lib/* %universal-output-dir%/%universal-lib-path%
                 cp %system.teamcity.build.workingDir%/bin/* %universal-output-dir%/%universal-bin-path%
-                rm -r %universal-output-dir%/%x64-lib-path%
-                rm -r %universal-output-dir%/%arm64-lib-path%
             """.trimIndent()
         }
     }
