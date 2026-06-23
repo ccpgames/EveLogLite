@@ -9,3 +9,8 @@ set(VCPKG_CRT_LINKAGE static)
 
 set(VCPKG_CXX_FLAGS "-lresolv")
 set(VCPKG_C_FLAGS "-lresolv")
+
+# Support for 10.15 and lower has been dropped
+# but the triplets in the vcpkg-registry have not
+# caught up yet. This can be removed once they do.
+set(VCPKG_OSX_DEPLOYMENT_TARGET 11.0)
