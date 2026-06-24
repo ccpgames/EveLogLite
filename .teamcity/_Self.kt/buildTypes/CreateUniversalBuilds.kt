@@ -44,14 +44,14 @@ class UniversalBuild() : BuildType({
             name = "Create output location"
             id = "output_location"
             path = "mkdir"
-            arguments = "%universal-output-dir%"
+            arguments = "-p %universal-output-dir%/bin/macOS/universal/AppleClang"
         }
         script {
             name = "Populate output location"
             id = "populate_output_location"
             scriptContent = """
-                cp -r %system.teamcity.build.workingDir%/x64/bin/macOS/x64/AppleClang/* %universal-output-dir%/
-                cp -r %system.teamcity.build.workingDir%/arm64/bin/macOS/arm64/AppleClang/* %universal-output-dir%/
+                cp -r %system.teamcity.build.workingDir%/x64/bin/macOS/x64/AppleClang/* %universal-output-dir%/bin/macOS/universal/AppleClang/
+                cp -r %system.teamcity.build.workingDir%/arm64/bin/macOS/arm64/AppleClang/* %universal-output-dir%/bin/macOS/universal/AppleClang/
             """.trimIndent()
         }
         python {
@@ -69,8 +69,8 @@ class UniversalBuild() : BuildType({
             name = "Prepare universal build artifact"
             id = "prep_artifact"
             scriptContent = """
-                mkdir -p   %universal-output-dir%/%universal-bin-path%
-                cp %system.teamcity.build.workingDir%/bin/* %universal-output-dir%/%universal-bin-path%
+                mkdir -p %universal-output-dir%/bin/macOS/universal/AppleClang/%universal-bin-path%
+                cp %system.teamcity.build.workingDir%/bin/* %universal-output-dir%/bin/macOS/universal/AppleClang/%universal-bin-path%
             """.trimIndent()
         }
     }
