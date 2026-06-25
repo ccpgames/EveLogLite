@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.31)
 
-project(LogLite VERSION 1.4.3 LANGUAGES CXX)
+project(LogLite VERSION 1.5.0 LANGUAGES CXX)
 
 include(cmake/CcpBuildConfigurations.cmake)
 include(cmake/CcpMonolithVendorConfig.cmake)
