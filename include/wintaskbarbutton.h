@@ -1,3 +1,4 @@
+// # Copyright © 2026 Fenris Creations.
 #pragma once
 #ifndef WINTASKBARBUTTON_H
 #define WINTASKBARBUTTON_H

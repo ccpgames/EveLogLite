@@ -1,3 +1,5 @@
+# Copyright © 2026 Fenris Creations.
+
 cmake_minimum_required(VERSION 3.31)
 
 project(LogLite VERSION 1.5.0 LANGUAGES CXX)

@@ -1,3 +1,4 @@
+// Copyright © 2026 Fenris Creations.
 #include "wintaskbarbutton.h"
 
 #if WIN64
