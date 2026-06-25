@@ -154,6 +154,13 @@ if(APPLE)
     add_custom_command(
             OUTPUT ${ICONSET}
             COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/buildOsxIcon.sh ${CMAKE_BINARY_DIR}
+            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/16.png
+                    ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/32.png
+                    ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/64.png
+                    ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/128.png
+                    ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/256.png
+                    ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/512.png
+                    ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/1024.png
     )
     set(MACOSX_BUNDLE_ICON_FILE icon.icns)
     set_source_files_properties(${ICONSET} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
