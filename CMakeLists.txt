@@ -151,22 +151,9 @@ endif()
 
 if(APPLE)
     set(ICONSET "${CMAKE_BINARY_DIR}/icon.icns")
-    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/icon.iconset)
-    file(COPY_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/16.png ${CMAKE_BINARY_DIR}/icon.iconset/icon_16x16.png)
-    file(COPY_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/32.png ${CMAKE_BINARY_DIR}/icon.iconset/icon_16x16@2x.png)
-    file(COPY_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/32.png ${CMAKE_BINARY_DIR}/icon.iconset/icon_32x32.png)
-    file(COPY_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/64.png ${CMAKE_BINARY_DIR}/icon.iconset/icon_32x32@2x.png)
-    file(COPY_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/64.png ${CMAKE_BINARY_DIR}/icon.iconset/icon_64x64.png)
-    file(COPY_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/128.png ${CMAKE_BINARY_DIR}/icon.iconset/icon_64x64@2x.png)
-    file(COPY_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/128.png ${CMAKE_BINARY_DIR}/icon.iconset/icon_128x128.png)
-    file(COPY_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/256.png ${CMAKE_BINARY_DIR}/icon.iconset/icon_128x128@2x.png)
-    file(COPY_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/256.png ${CMAKE_BINARY_DIR}/icon.iconset/icon_256x256.png)
-    file(COPY_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/512.png ${CMAKE_BINARY_DIR}/icon.iconset/icon_256x256@2x.png)
-    file(COPY_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/512.png ${CMAKE_BINARY_DIR}/icon.iconset/icon_512x512.png)
-    file(COPY_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/1024.png ${CMAKE_BINARY_DIR}/icon.iconset/icon_512x512@2x.png)
-    execute_process(
-            COMMAND_ERROR_IS_FATAL ANY
-            COMMAND iconutil -c icns -o ${ICONSET} ${CMAKE_BINARY_DIR}/icon.iconset
+    add_custom_command(
+            OUTPUT ${ICONSET}
+            COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/buildOsxIcon.sh ${CMAKE_BINARY_DIR}
     )
     set(MACOSX_BUNDLE_ICON_FILE icon.icns)
     set_source_files_properties(${ICONSET} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
