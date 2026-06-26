@@ -33,9 +33,9 @@ private:
     Ui::MainWindow *ui;
     LogStatistics *m_stats;
     QTimer m_quickFilterEdited;
-    QIcon m_icons[10 * 10];
     WinTaskbarButton* m_taskbarButton;
     bool m_monospaceFont;
+    QIcon m_icon;
 private slots:
     void itemSelected();
     void anchorClicked(const QUrl& url);

@@ -34,7 +34,6 @@ qt_add_executable(LogLite WIN32 MACOSX_BUNDLE
         src/mainwindow.cpp include/mainwindow.h src/mainwindow.ui
         src/overlaylayout.cpp include/overlaylayout.h
         src/settingsdialog.cpp include/settingsdialog.h src/settingsdialog.ui
-        src/wintaskbarbutton.cpp include/wintaskbarbutton.h
         ${app_icon_resource_windows}
 )
 

@@ -21,9 +21,6 @@
 #include <QStyleFactory>
 
 #include <QPainter>
-#ifdef _WIN32
-#include "wintaskbarbutton.h"
-#endif
 
 #include "settingsdialog.h"
 #include "fixedheader.h"
@@ -386,6 +383,8 @@ MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
     shortcuts << QKeySequence("Ctrl+Del") << QKeySequence("Ctrl+Backspace");
     ui->actionClear->setShortcuts(shortcuts);
 
+    m_icon = windowIcon();
+
 }
 
 MainWindow::~MainWindow()
@@ -734,27 +733,18 @@ void MainWindow::updateTaskbarIcon()
     }
     int warnings = std::min(model->getRunningCount(SEVERITY_WARN) * 2, 9);
     int errors = std::min(model->getRunningCount(SEVERITY_ERR) * 2, 9);
-#ifdef _WIN32
-    if (!m_taskbarButton)
-    {
-        m_taskbarButton = new WinTaskbarButton();
-        m_taskbarButton->setWindow(reinterpret_cast<HWND>( winId() ));
-    }
-    m_taskbarButton->setOverlayIcon(warnings, errors);
-#else
-    if( !warnings && !errors )
-    {
-        auto defaultIcon = QIcon(); // Default to the icon file
-        qApp->setWindowIcon(defaultIcon);
-        return;
-    }
     // Getting the size of the icon in the dock/taskbar would require,
     // using OS specific APIs, which we want to avoid, so just use a 64x64 icon size.
+    auto icon = QIcon(":/default/icon64");
+    if( !warnings && !errors )
+    {
+        qApp->setWindowIcon(icon);
+        return;
+    }
     auto iconSize = QSize(64, 64);
     auto width = iconSize.width();
     auto height = iconSize.height();
     QPixmap pixmap(iconSize);
-    auto icon = QIcon(":/default/icon64");
     QPainter painter(&pixmap);
     QColor yellow(255, 255, 0);
     QColor red(255, 0, 0);
@@ -769,7 +759,6 @@ void MainWindow::updateTaskbarIcon()
     icon.addPixmap(pixmap);
     QIcon newIcon(pixmap);
     qApp->setWindowIcon(newIcon);
-#endif
 }
 
 void MainWindow::editFilters()
