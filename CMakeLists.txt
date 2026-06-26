@@ -119,6 +119,9 @@ set_source_files_properties("src/resources/searchDown.png"
 set_source_files_properties("src/resources/searchUp.png"
         PROPERTIES QT_RESOURCE_ALIAS "searchUp"
 )
+set_source_files_properties("src/resources/icon/64.png"
+        PROPERTIES QT_RESOURCE_ALIAS "icon64"
+)
 set(resources_resource_files
         "src/resources/Counter.png"
         "src/resources/Error.png"
@@ -136,6 +139,7 @@ set(resources_resource_files
         "src/resources/searchClose.png"
         "src/resources/searchDown.png"
         "src/resources/searchUp.png"
+        "src/resources/icon/64.png"
 )
 
 qt6_add_resources(LogLite "resources"

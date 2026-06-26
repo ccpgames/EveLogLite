@@ -359,12 +359,9 @@ MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
         ui->tableView->selectionModel()->setCurrentIndex(ui->tableView->model()->index(0, 0), QItemSelectionModel::SelectCurrent|QItemSelectionModel::Rows);
     }
 
-#ifdef _WIN32
     auto timer = new QTimer(this);
     connect(timer, &QTimer::timeout, this, &MainWindow::updateTaskbarIcon);
     timer->start(1000);
-
-#endif
 
     connect(ui->actionEditFilters, &QAction::triggered, this, &MainWindow::editFilters);
     connect(ui->actionEditHighlights, &QAction::triggered, this, &MainWindow::editHighlights);
@@ -730,19 +727,48 @@ void MainWindow::showAboutDialog()
 
 void MainWindow::updateTaskbarIcon()
 {
-#ifdef _WIN32
-    if (auto model = dynamic_cast<LogModel*>(ui->tableView->sourceModel()))
+    auto model = dynamic_cast<LogModel*>(ui->tableView->sourceModel());
+    if( !model )
     {
-        int warnings = std::min(model->getRunningCount(SEVERITY_WARN) * 2, 9);
-        int errors = std::min(model->getRunningCount(SEVERITY_ERR) * 2, 9);
-
-        if (!m_taskbarButton)
-        {
-            m_taskbarButton = new WinTaskbarButton();
-            m_taskbarButton->setWindow(reinterpret_cast<HWND>( winId() ));
-        }
-        m_taskbarButton->setOverlayIcon(warnings, errors);
+        return;
     }
+    int warnings = std::min(model->getRunningCount(SEVERITY_WARN) * 2, 9);
+    int errors = std::min(model->getRunningCount(SEVERITY_ERR) * 2, 9);
+#ifdef _WIN32
+    if (!m_taskbarButton)
+    {
+        m_taskbarButton = new WinTaskbarButton();
+        m_taskbarButton->setWindow(reinterpret_cast<HWND>( winId() ));
+    }
+    m_taskbarButton->setOverlayIcon(warnings, errors);
+#else
+    if( !warnings && !errors )
+    {
+        auto defaultIcon = QIcon(); // Default to the icon file
+        qApp->setWindowIcon(defaultIcon);
+        return;
+    }
+    // Getting the size of the icon in the dock/taskbar would require,
+    // using OS specific APIs, which we want to avoid, so just use a 64x64 icon size.
+    auto iconSize = QSize(64, 64);
+    auto width = iconSize.width();
+    auto height = iconSize.height();
+    QPixmap pixmap(iconSize);
+    auto icon = QIcon(":/default/icon64");
+    QPainter painter(&pixmap);
+    QColor yellow(255, 255, 0);
+    QColor red(255, 0, 0);
+    int chartHeight = height / 2;
+    int chartWidth = width / 2;
+    icon.paint(&painter, pixmap.rect(), Qt::AlignLeft);
+    painter.setBrush(yellow);
+    painter.drawRect(width / 2, chartHeight, chartWidth / 2, -chartHeight * warnings / 9);
+    painter.setBrush(red);
+    painter.drawRect(width / 2 + chartWidth / 2, chartHeight, width / 2, -chartHeight * errors / 9);
+    painter.end();
+    icon.addPixmap(pixmap);
+    QIcon newIcon(pixmap);
+    qApp->setWindowIcon(newIcon);
 #endif
 }
 
