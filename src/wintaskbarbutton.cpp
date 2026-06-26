@@ -35,16 +35,14 @@ HICON createIcon(int warnings, int errors)
     HBITMAP hMonoBitmap = CreateBitmap(width, height, 1, 1, nullptr);
     HBITMAP hColorBitmap = CreateCompatibleBitmap(GetDC(nullptr), width, height);
     HDC hdc = CreateCompatibleDC(nullptr);
-
-    HGDIOBJ oldBmp = SelectObject(hdc, hColorBitmap);
-    HBRUSH blackBrush = CreateSolidBrush(black);
     RECT rect = {0, 0, width, height};
-    FillRect(hdc, &rect, blackBrush);  // The black color will become transparent when combined with a white mask.
-    SelectObject(hdc, oldBmp);
-
-    oldBmp = SelectObject(hdc, hColorBitmap);
     RECT warningRect = {0, 16, 8, 16 - warnings};
     RECT errorRect = {8, 16, 16, 16 - errors};
+
+    SelectObject(hdc, hColorBitmap);
+
+    HBRUSH blackBrush = CreateSolidBrush(black);
+    FillRect(hdc, &rect, blackBrush);  // The black color will become transparent when combined with a white mask.
 
     HBRUSH yellowBrush = CreateSolidBrush(warningColor);
     FillRect(hdc, &warningRect, yellowBrush);
@@ -59,7 +57,6 @@ HICON createIcon(int warnings, int errors)
     FillRect(hdc, &rect, whiteBrush);
     DeleteObject(whiteBrush);
 
-    blackBrush = CreateSolidBrush(black);
     FillRect(hdc, &warningRect, blackBrush);
     FillRect(hdc, &errorRect, blackBrush);
     DeleteObject(blackBrush);
