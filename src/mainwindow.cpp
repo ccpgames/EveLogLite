@@ -17,12 +17,10 @@
 #include <QDesktopServices>
 #include <QMimeData>
 #include <QFontDatabase>
+#include <QStandardPaths>
 #include <QStyleFactory>
 
 #include <QPainter>
-#ifdef _WIN32
-#include <QtWinExtras/QWinTaskbarButton>
-#endif
 
 #include "settingsdialog.h"
 #include "fixedheader.h"
@@ -41,22 +39,6 @@ const char* columnSettings[] = {
     "columns/message",
 };
 
-void generateOverlayIcons(QIcon* icons)
-{
-    for (int warnings = 0; warnings < 10; ++warnings)
-    {
-        for (int errors = 0; errors < 10; ++errors)
-        {
-            QPixmap pm(16, 16);
-            pm.fill(Qt::transparent);
-            QPainter p(&pm);
-            p.fillRect(QRect(0, 15 - warnings, 8, warnings), QColor(255, 255, 0));
-            p.fillRect(QRect(8, 15 - errors, 8, errors), QColor(255, 0, 0));
-            icons[errors + 10 * warnings] = QIcon(pm);
-        }
-    }
-}
-
 struct PathRec
 {
     QString path;
@@ -67,26 +49,26 @@ struct PathRec
 void findPaths(const QString& string, QList<PathRec>& paths)
 {
 #ifdef _WIN32
-    QRegExp rx("\\w:([/\\\\]+[\\w- \\.]+)+");
+    QRegularExpression rx("\\w:([/\\\\]+[\\w- \\.]+)+");
 #else
-    QRegExp rx("([/\\\\]+[\\w- \\.]+)+");
+    QRegularExpression rx("([/\\\\]+[\\w- \\.]+)+");
 #endif
-    QRegExp slash("[/\\\\]");
-    int pos = 0;
-    while ((pos = rx.indexIn(string, pos)) != -1)
+    QRegularExpression slash("[/\\\\]");
+    auto matches = rx.globalMatch(string);
+    for( auto match : matches )
     {
-        auto path = QFileInfo(rx.cap(0).trimmed());
+        auto path = QFileInfo(match.captured().trimmed());
         if (path.exists())
         {
             PathRec r;
             r.path = path.canonicalFilePath();
-            r.start = pos;
-            r.length = rx.matchedLength();
+            r.start = match.capturedStart();
+            r.length = match.capturedLength();
             paths.append(r);
         }
         else
         {
-            auto full = rx.cap(0);
+            auto full = match.captured();
             int p = full.lastIndexOf(slash);
 
             while (true)
@@ -102,7 +84,7 @@ void findPaths(const QString& string, QList<PathRec>& paths)
                 {
                     PathRec r;
                     r.path = path.canonicalFilePath();
-                    r.start = pos;
+                    r.start = match.capturedStart();
                     r.length = full.length();
                     paths.append(r);
                     break;
@@ -110,7 +92,6 @@ void findPaths(const QString& string, QList<PathRec>& paths)
                 p = p2;
             }
         }
-        pos += rx.matchedLength();
     }
 }
 
@@ -119,7 +100,6 @@ void findPaths(const QString& string, QList<PathRec>& paths)
 MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
-    m_taskbarButton(nullptr),
     m_monospaceFont(false)
 {
     QSettings settings;
@@ -375,13 +355,9 @@ MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
         ui->tableView->selectionModel()->setCurrentIndex(ui->tableView->model()->index(0, 0), QItemSelectionModel::SelectCurrent|QItemSelectionModel::Rows);
     }
 
-#ifdef _WIN32
     auto timer = new QTimer(this);
     connect(timer, &QTimer::timeout, this, &MainWindow::updateTaskbarIcon);
     timer->start(1000);
-
-    generateOverlayIcons(m_icons);
-#endif
 
     connect(ui->actionEditFilters, &QAction::triggered, this, &MainWindow::editFilters);
     connect(ui->actionEditHighlights, &QAction::triggered, this, &MainWindow::editHighlights);
@@ -405,6 +381,8 @@ MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
     QList<QKeySequence> shortcuts;
     shortcuts << QKeySequence("Ctrl+Del") << QKeySequence("Ctrl+Backspace");
     ui->actionClear->setShortcuts(shortcuts);
+
+    m_icon = windowIcon();
 
 }
 
@@ -747,20 +725,39 @@ void MainWindow::showAboutDialog()
 
 void MainWindow::updateTaskbarIcon()
 {
-#ifdef _WIN32
-    if (auto model = dynamic_cast<LogModel*>(ui->tableView->sourceModel()))
+    auto model = dynamic_cast<LogModel*>(ui->tableView->sourceModel());
+    if( !model )
     {
-        int warnings = std::min(model->getRunningCount(SEVERITY_WARN) * 2, 9);
-        int errors = std::min(model->getRunningCount(SEVERITY_ERR) * 2, 9);
-
-        if (!m_taskbarButton)
-        {
-            m_taskbarButton = new QWinTaskbarButton(this);
-            m_taskbarButton->setWindow(windowHandle());
-        }
-        m_taskbarButton->setOverlayIcon(m_icons[errors + 10 * warnings]);
+        return;
     }
-#endif
+    int warnings = std::min(model->getRunningCount(SEVERITY_WARN) * 2, 9);
+    int errors = std::min(model->getRunningCount(SEVERITY_ERR) * 2, 9);
+    // Getting the size of the icon in the dock/taskbar would require,
+    // using OS specific APIs, which we want to avoid, so just use a 64x64 icon size.
+    auto icon = QIcon(":/default/icon64");
+    if( !warnings && !errors )
+    {
+        qApp->setWindowIcon(icon);
+        return;
+    }
+    auto iconSize = QSize(64, 64);
+    auto width = iconSize.width();
+    auto height = iconSize.height();
+    QPixmap pixmap(iconSize);
+    QPainter painter(&pixmap);
+    QColor yellow(255, 255, 0);
+    QColor red(255, 0, 0);
+    int chartHeight = height / 2;
+    int chartWidth = width / 2;
+    icon.paint(&painter, pixmap.rect(), Qt::AlignLeft);
+    painter.setBrush(yellow);
+    painter.drawRect(width / 2, chartHeight, chartWidth / 2, -chartHeight * warnings / 9);
+    painter.setBrush(red);
+    painter.drawRect(width / 2 + chartWidth / 2, chartHeight, width / 2, -chartHeight * errors / 9);
+    painter.end();
+    icon.addPixmap(pixmap);
+    QIcon newIcon(pixmap);
+    qApp->setWindowIcon(newIcon);
 }
 
 void MainWindow::editFilters()

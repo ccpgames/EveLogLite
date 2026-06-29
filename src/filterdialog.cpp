@@ -2,7 +2,7 @@
 #include "ui_filter.h"
 #include "filtercondition.h"
 #include "filterhighlight.h"
-#include <QRegExpValidator>
+#include <QRegularExpressionValidator>
 
 FilterDialog::FilterDialog(QWidget *parent) :
     QDialog(parent),
@@ -10,7 +10,7 @@ FilterDialog::FilterDialog(QWidget *parent) :
 {
     ui->setupUi(this);
     ui->filterAreaContents->createControls();
-    ui->name->setValidator(new QRegExpValidator(QRegExp("[\\w ]+"), this));
+    ui->name->setValidator(new QRegularExpressionValidator(QRegularExpression("[\\w ]+"), this));
 
     m_filters = Filter::getFilters();
     for( auto it = m_filters.begin(); it != m_filters.end(); ++it)
