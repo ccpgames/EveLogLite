@@ -157,7 +157,8 @@ if(APPLE)
     add_custom_command(
             OUTPUT ${ICONSET}
             COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/buildOsxIcon.sh ${CMAKE_BINARY_DIR}
-            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/16.png
+            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/buildOsxIcon.sh
+                    ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/16.png
                     ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/32.png
                     ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/64.png
                     ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon/128.png
