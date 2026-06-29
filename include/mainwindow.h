@@ -7,7 +7,6 @@
 
 class SearchBox;
 class LogStatistics;
-class WinTaskbarButton;
 
 namespace Ui {
 class MainWindow;
@@ -33,7 +32,6 @@ private:
     Ui::MainWindow *ui;
     LogStatistics *m_stats;
     QTimer m_quickFilterEdited;
-    WinTaskbarButton* m_taskbarButton;
     bool m_monospaceFont;
     QIcon m_icon;
 private slots:

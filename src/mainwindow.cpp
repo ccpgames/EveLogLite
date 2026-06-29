@@ -100,7 +100,6 @@ void findPaths(const QString& string, QList<PathRec>& paths)
 MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
-    m_taskbarButton(nullptr),
     m_monospaceFont(false)
 {
     QSettings settings;
