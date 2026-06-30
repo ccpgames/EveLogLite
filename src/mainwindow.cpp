@@ -107,12 +107,11 @@ MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
     bool darkTheme = false;
 #ifdef Q_OS_WIN
     QSettings s("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", QSettings::NativeFormat);
+    qApp->setStyle(QStyleFactory::create("Fusion"));
     darkTheme = s.value("AppsUseLightTheme") == 0;
 
     if (darkTheme)
     {
-        qApp->setStyle(QStyleFactory::create("Fusion"));
-
         QPalette darkPalette;
         darkPalette.setColor(QPalette::Window, QColor(53,53,53));
         darkPalette.setColor(QPalette::WindowText, Qt::white);
