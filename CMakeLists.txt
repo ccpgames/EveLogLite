@@ -13,7 +13,9 @@ find_package(Qt6 REQUIRED COMPONENTS Core Gui Network Sql Widgets)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 
-set(app_icon_resource_windows "${CMAKE_CURRENT_SOURCE_DIR}/src/LogLite_resource.rc")
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/templates/LogLite_resource.rc ${CMAKE_CURRENT_BINARY_DIR}/generated/LogLite_resource.rc)
+
+set(app_icon_resource_windows "${CMAKE_CURRENT_BINARY_DIR}/generated/LogLite_resource.rc")
 qt_add_executable(LogLite WIN32 MACOSX_BUNDLE
         src/abstractlogmodel.cpp include/abstractlogmodel.h
         src/filter.ui
