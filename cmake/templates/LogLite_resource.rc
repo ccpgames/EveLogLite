@@ -4,10 +4,10 @@
 #  include <windows.h>
 # endif
 
-IDI_ICON1               ICON    "resources/icon.ico"
+IDI_ICON1               ICON    "${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon.ico"
 VS_VERSION_INFO VERSIONINFO
-	FILEVERSION 1,2,0,0
-	PRODUCTVERSION 1,2,0,0
+	FILEVERSION ${LogLite_VERSION_MAJOR},${LogLite_VERSION_MINOR},${LogLite_VERSION_PATCH}
+	PRODUCTVERSION ${LogLite_VERSION_MAJOR},${LogLite_VERSION_MINOR},${LogLite_VERSION_PATCH}
 	FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
 	FILEFLAGS VS_FF_DEBUG
@@ -24,11 +24,11 @@ VS_VERSION_INFO VERSIONINFO
 			BEGIN
 				VALUE "CompanyName", "CCP\0"
 				VALUE "FileDescription", "LogLite server\0"
-				VALUE "FileVersion", "1.2.0.0\0"
+				VALUE "FileVersion", "${LogLite_VERSION}\0"
 				VALUE "LegalCopyright", "Copyright CCP 2015\0"
 				VALUE "OriginalFilename", "LogLite.exe\0"
 				VALUE "ProductName", "LogLite\0"
-				VALUE "ProductVersion", "1.2.0.0\0"
+				VALUE "ProductVersion", "${LogLite_VERSION}\0"
 			END
 		END
 		BLOCK "VarFileInfo"
