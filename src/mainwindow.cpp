@@ -378,7 +378,7 @@ MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
 
     //Set multiple shortcuts for clear action to add support for backspace
     QList<QKeySequence> shortcuts;
-    shortcuts << QKeySequence("Ctrl+Del") << QKeySequence("Ctrl+Backspace");
+    shortcuts << QKeySequence("Ctrl+Backspace") << QKeySequence("Ctrl+Del");
     ui->actionClear->setShortcuts(shortcuts);
 
     m_icon = windowIcon();
