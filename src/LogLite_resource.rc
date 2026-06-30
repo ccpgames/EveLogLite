@@ -6,8 +6,8 @@
 
 IDI_ICON1               ICON    "resources/icon.ico"
 VS_VERSION_INFO VERSIONINFO
-	FILEVERSION 1,2,0,0
-	PRODUCTVERSION 1,2,0,0
+	FILEVERSION 1,5,0,0
+	PRODUCTVERSION 1,5,0,0
 	FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
 	FILEFLAGS VS_FF_DEBUG
@@ -24,11 +24,11 @@ VS_VERSION_INFO VERSIONINFO
 			BEGIN
 				VALUE "CompanyName", "CCP\0"
 				VALUE "FileDescription", "LogLite server\0"
-				VALUE "FileVersion", "1.2.0.0\0"
+				VALUE "FileVersion", "1.5.0.0\0"
 				VALUE "LegalCopyright", "Copyright CCP 2015\0"
 				VALUE "OriginalFilename", "LogLite.exe\0"
 				VALUE "ProductName", "LogLite\0"
-				VALUE "ProductVersion", "1.2.0.0\0"
+				VALUE "ProductVersion", "1.5.0.0\0"
 			END
 		END
 		BLOCK "VarFileInfo"
