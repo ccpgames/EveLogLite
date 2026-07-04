@@ -172,6 +172,30 @@
         "VCPKG_TARGET_TRIPLET": "x64-osx-trinitydev",
         "VCPKG_HOST_TRIPLET": "x64-osx-trinitydev"
       }
+    },
+    {
+      "name": "linux",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/.cmake-build-${presetName}",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "x64-linux-debug",
+      "inherits": "linux",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "x64-linux-release",
+      "inherits": "linux",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
     }
   ]
 }

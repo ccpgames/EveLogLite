@@ -2,6 +2,17 @@
 
 -------------------
 
+**This is [EveLogLite-with-Linux](https://github.com/deveyus/EveLogLite-with-Linux) — a fork of the upstream [ccpgames/EveLogLite](https://github.com/ccpgames/EveLogLite) with native Linux build support.**
+
+The only changes from upstream are:
+- Linux CMake presets (`x64-linux-debug`, `x64-linux-release`)
+- Windows `.rc` resource file guarded behind `if(WIN32)` so it doesn't break Linux builds
+- `shell.nix` providing an isolated Nix dev shell with CMake, Qt 6.11.0, GCC 15, and all Qt build tools
+
+See [Build Instructions](#how-to-build) below.
+
+---
+
 LogLite is a client log viewer developed by [CCP Games] (https://www.ccpgames.com/) for their award winning MMO [EVE Online] (http://www.eveonline.com/).
 
 
