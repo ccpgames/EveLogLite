@@ -6,6 +6,7 @@
 #include "logstatistics.h"
 #include "logmonitorfilemodel.h"
 #include <QShortcut>
+#include <QActionGroup>
 #include <QMenu>
 #include <QClipboard>
 #include <QFileDialog>
@@ -295,8 +296,22 @@ MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
 
     connect(ui->actionClear, &QAction::triggered, model, &AbstractLogModel::clear);
 
-    ui->actionServerMode->setChecked(LogModel::retentionModeFromSettings(settings) == RetentionMode::Server);
-    connect(ui->actionServerMode, &QAction::triggered, this, &MainWindow::setServerMode);
+    RetentionMode initialRetentionMode = LogModel::retentionModeFromSettings(settings);
+    ui->actionServerMode->setChecked(initialRetentionMode == RetentionMode::Server);
+    ui->actionRollingMode->setChecked(initialRetentionMode == RetentionMode::Rolling);
+
+    // The three retention modes form a radio group: at most one of the two
+    // actions can be checked, and checking one unchecks the other. Neither
+    // checked means Unbounded. This is the single place mutual exclusion is
+    // enforced in the UI; the handler below reads back whichever action (if
+    // any) the group left checked.
+    auto retentionModeGroup = new QActionGroup(this);
+    retentionModeGroup->setExclusionPolicy(QActionGroup::ExclusionPolicy::ExclusiveOptional);
+    retentionModeGroup->addAction(ui->actionServerMode);
+    retentionModeGroup->addAction(ui->actionRollingMode);
+
+    connect(ui->actionServerMode, &QAction::triggered, this, &MainWindow::retentionModeActionTriggered);
+    connect(ui->actionRollingMode, &QAction::triggered, this, &MainWindow::retentionModeActionTriggered);
     connect(ui->actionSplitByPIDs, &QAction::triggered, this, &MainWindow::splitByPids);
     ui->actionSplitByPIDs->setChecked(settings.value("splitByPids").toBool());
     splitByPids();
@@ -656,9 +671,21 @@ void MainWindow::findPrevious()
     ui->tableView->selectPreviousMatching(ui->searchText->text());
 }
 
-void MainWindow::setServerMode()
+void MainWindow::retentionModeActionTriggered()
 {
-    RetentionMode mode = ui->actionServerMode->isChecked() ? RetentionMode::Server : RetentionMode::Unbounded;
+    // The QActionGroup(ExclusiveOptional) guarantees at most one of these is
+    // checked, so this if/else-if is exhaustive over the three modes without
+    // any combined state being reachable.
+    RetentionMode mode = RetentionMode::Unbounded;
+    if (ui->actionServerMode->isChecked())
+    {
+        mode = RetentionMode::Server;
+    }
+    else if (ui->actionRollingMode->isChecked())
+    {
+        mode = RetentionMode::Rolling;
+    }
+
     auto model = dynamic_cast<LogModel*>(ui->tableView->sourceModel());
     if (model)
     {
