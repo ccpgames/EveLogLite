@@ -70,11 +70,22 @@ public:
     // falls back to Unbounded.
     static RetentionMode retentionModeFromSettings(QSettings& settings);
 protected:
+    // Appends one received message and updates the accounting tied to arrival:
+    // the running-rate pulse and the per-head severity statistics. This is the
+    // single per-message ingest step the socket receive loop runs for each
+    // completed message.
+    void recordMessage(LogMessage* message);
     // Applies the active retention policy to the current buffer. Called after a
     // batch of messages is appended. Server autosaves and clears at the cap;
-    // Unbounded and Rolling do not evict here yet.
+    // Rolling drops the oldest rows to hold exactly the cap; Unbounded never
+    // evicts.
     void enforceRetentionPolicy();
 private:
+    // Evicts the oldest `count` rows for Rolling mode: decrements the severity
+    // statistics for each evicted head message (continuation rows were never
+    // counted, so they are skipped) and then frees and removes the rows. Running
+    // counts are left untouched, as they are a self-expiring rate pulse.
+    void evictOldest(int count);
     bool autoSave();
 
     class RunningCount

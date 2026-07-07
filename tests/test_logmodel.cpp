@@ -15,6 +15,7 @@ class TestableLogModel : public LogModel
 {
 public:
     using AbstractLogModel::addMessage;
+    using LogModel::recordMessage;
     using LogModel::enforceRetentionPolicy;
 };
 
@@ -37,9 +38,31 @@ LogMessage* makeHead(int sequence, LogSeverity severity)
     return message;
 }
 
+// Builds a head message whose text is several newline-separated lines. When the
+// model has "break lines" on, recording this explodes into one head row plus one
+// continuation row per extra line.
+LogMessage* makeMultiline(int sequence, int lineCount, LogSeverity severity)
+{
+    auto message = makeHead(sequence, severity);
+    QStringList lines;
+    for (int i = 0; i < lineCount; ++i)
+    {
+        lines << QString("%1.%2").arg(sequence).arg(i);
+    }
+    message->message = lines.join('\n');
+    return message;
+}
+
 int lswFileCount(const QString& directory)
 {
     return QDir(directory).entryList(QStringList() << "*.lsw", QDir::Files).size();
+}
+
+// Real rows exclude the trailing sentinel row that rowCount() adds on top of the
+// buffer size.
+int realRowCount(const AbstractLogModel& model)
+{
+    return model.rowCount() - 1;
 }
 
 }
@@ -59,7 +82,15 @@ private slots:
     void legacyServerModeMigratesToServer();
     void absentSettingsMigrateToUnbounded();
     void storedRollingModeRoutesThroughUnclamped();
-    void rollingModeIsInertAndGrowsLikeUnbounded();
+
+    // Rolling eviction (the core of this slice).
+    void rollingBoundsBufferAtCap();
+    void rollingDropsOldestKeepsNewest();
+    void rollingStaysAtCapContinuously();
+    void rollingSwitchingIntoModeTrimsImmediately();
+    void rollingLoweringCapTrimsImmediately();
+    void rollingStatisticsTrackBufferContents();
+    void rollingMultilineStraddleIsSafe();
 };
 
 void TestLogModel::freshModelHasOnlyThePhantomRow()
@@ -161,31 +192,197 @@ void TestLogModel::storedRollingModeRoutesThroughUnclamped()
     QCOMPARE(int(LogModel::retentionModeFromSettings(settings)), int(RetentionMode::Unbounded));
 }
 
-void TestLogModel::rollingModeIsInertAndGrowsLikeUnbounded()
+void TestLogModel::rollingBoundsBufferAtCap()
 {
     QTemporaryDir saveDir;
     QVERIFY(saveDir.isValid());
 
     const int cap = 8;
+    const int extra = 5;
     TestableLogModel model;
     model.setAutoSaveDirectory(saveDir.path());
     model.setMaxMessages(cap);
-    // Force Rolling through the same routing the settings loader uses, proving
-    // the value is honored and not clamped away.
-    model.setRetentionMode(static_cast<RetentionMode>(2));
-    QCOMPARE(int(model.retentionMode()), int(RetentionMode::Rolling));
+    model.setRetentionMode(RetentionMode::Rolling);
 
-    const int total = 3 * cap;
-    for (int i = 0; i < total; ++i)
+    for (int i = 0; i < cap + extra; ++i)
     {
-        model.addMessage(makeHead(i, SEVERITY_INFO));
+        model.recordMessage(makeHead(i, SEVERITY_INFO));
     }
     model.enforceRetentionPolicy();
 
-    // Rolling eviction is not implemented yet, so the buffer grows unbounded and
-    // nothing is written to disk.
-    QCOMPARE(model.rowCount(), total + 1);
+    // The buffer holds exactly the cap, and nothing was written to disk (Rolling
+    // never autosaves).
+    QCOMPARE(realRowCount(model), cap);
     QCOMPARE(lswFileCount(saveDir.path()), 0);
+}
+
+void TestLogModel::rollingDropsOldestKeepsNewest()
+{
+    const int cap = 8;
+    const int extra = 5;
+    TestableLogModel model;
+    model.setMaxMessages(cap);
+    model.setRetentionMode(RetentionMode::Rolling);
+
+    // Each head carries its arrival sequence in the text; after the flood the
+    // oldest `extra` are gone and the newest `cap` remain in order.
+    for (int i = 0; i < cap + extra; ++i)
+    {
+        model.recordMessage(makeHead(i, SEVERITY_INFO));
+        model.enforceRetentionPolicy();
+    }
+
+    QCOMPARE(realRowCount(model), cap);
+    QCOMPARE(model.message(0)->message, QString::number(extra));
+    QCOMPARE(model.message(cap - 1)->message, QString::number(cap + extra - 1));
+
+    // Every surviving sequence is exactly the newest window, in order, and every
+    // evicted sequence is absent.
+    for (int row = 0; row < cap; ++row)
+    {
+        QCOMPARE(model.message(row)->message, QString::number(extra + row));
+    }
+}
+
+void TestLogModel::rollingStaysAtCapContinuously()
+{
+    const int cap = 8;
+    const int feeds = 60 * cap;
+    TestableLogModel model;
+    model.setMaxMessages(cap);
+    model.setRetentionMode(RetentionMode::Rolling);
+
+    // One-in-one-out: after every single message past the cap the real count must
+    // be exactly the cap the whole way through, never cap+1 and never collapsing
+    // to zero.
+    for (int i = 0; i < feeds; ++i)
+    {
+        model.recordMessage(makeHead(i, SEVERITY_INFO));
+        model.enforceRetentionPolicy();
+
+        const int expected = (i + 1) < cap ? (i + 1) : cap;
+        QCOMPARE(realRowCount(model), expected);
+    }
+}
+
+void TestLogModel::rollingSwitchingIntoModeTrimsImmediately()
+{
+    const int cap = 8;
+    const int total = 3 * cap;
+    TestableLogModel model;
+    model.setMaxMessages(cap);
+    // Grow past the cap while Unbounded, so switching into Rolling has an
+    // over-cap buffer to trim.
+    model.setRetentionMode(RetentionMode::Unbounded);
+    for (int i = 0; i < total; ++i)
+    {
+        model.recordMessage(makeHead(i, SEVERITY_INFO));
+    }
+    QCOMPARE(realRowCount(model), total);
+
+    // Switching into Rolling trims down to the cap at once, without waiting for
+    // the next message.
+    model.setRetentionMode(RetentionMode::Rolling);
+    QCOMPARE(realRowCount(model), cap);
+    QCOMPARE(model.message(0)->message, QString::number(total - cap));
+}
+
+void TestLogModel::rollingLoweringCapTrimsImmediately()
+{
+    const int cap = 20;
+    TestableLogModel model;
+    model.setMaxMessages(cap);
+    model.setRetentionMode(RetentionMode::Rolling);
+    for (int i = 0; i < cap; ++i)
+    {
+        model.recordMessage(makeHead(i, SEVERITY_INFO));
+        model.enforceRetentionPolicy();
+    }
+    QCOMPARE(realRowCount(model), cap);
+
+    // Lowering the cap under Rolling trims the buffer down to the new cap
+    // immediately.
+    const int lowered = 5;
+    model.setMaxMessages(lowered);
+    QCOMPARE(realRowCount(model), lowered);
+    QCOMPARE(model.message(0)->message, QString::number(cap - lowered));
+}
+
+void TestLogModel::rollingStatisticsTrackBufferContents()
+{
+    const int cap = 8;
+    const int extra = 10;
+    TestableLogModel model;
+    model.setMaxMessages(cap);
+    model.setRetentionMode(RetentionMode::Rolling);
+
+    // A repeating mix of all four severities, so eviction has to decrement the
+    // right per-severity counter and not just a single one.
+    const LogSeverity cycle[] = { SEVERITY_ERR, SEVERITY_WARN, SEVERITY_NOTICE, SEVERITY_INFO };
+    for (int i = 0; i < cap + extra; ++i)
+    {
+        model.recordMessage(makeHead(i, cycle[i % 4]));
+        model.enforceRetentionPolicy();
+    }
+    QCOMPARE(realRowCount(model), cap);
+
+    // Recompute the expected counts directly from the surviving head rows and
+    // compare against the model's statistics; they must match exactly and none
+    // may be negative.
+    int expectedError = 0, expectedWarning = 0, expectedNotice = 0, expectedInfo = 0;
+    for (int row = 0; row < cap; ++row)
+    {
+        switch (model.message(row)->severity)
+        {
+        case SEVERITY_ERR: ++expectedError; break;
+        case SEVERITY_WARN: ++expectedWarning; break;
+        case SEVERITY_NOTICE: ++expectedNotice; break;
+        case SEVERITY_INFO: ++expectedInfo; break;
+        default: break;
+        }
+    }
+
+    const auto& stats = model.statistics();
+    QCOMPARE(stats.error, expectedError);
+    QCOMPARE(stats.warning, expectedWarning);
+    QCOMPARE(stats.notice, expectedNotice);
+    QCOMPARE(stats.info, expectedInfo);
+    QVERIFY(stats.error >= 0);
+    QVERIFY(stats.warning >= 0);
+    QVERIFY(stats.notice >= 0);
+    QVERIFY(stats.info >= 0);
+}
+
+void TestLogModel::rollingMultilineStraddleIsSafe()
+{
+    const int cap = 4;
+    TestableLogModel model;
+    model.setMaxMessages(cap);
+    model.setBreakLines(true);
+    model.setRetentionMode(RetentionMode::Rolling);
+
+    // A multiline message explodes into a head plus three continuation rows.
+    // Recording it first, then flooding single heads, forces eviction to cut
+    // through the middle of that group (dropping the head, then continuations,
+    // one per feed). Stopping after cap-1 heads leaves one orphaned continuation
+    // still at the front of the buffer.
+    model.recordMessage(makeMultiline(0, 4, SEVERITY_INFO));
+    for (int i = 1; i < cap; ++i)
+    {
+        model.recordMessage(makeHead(i, SEVERITY_INFO));
+        model.enforceRetentionPolicy();
+    }
+
+    // No crash, no double-free (verified under the Tester's debug/ASan build),
+    // and the row cap still holds even with a split multiline group. The front
+    // row is a continuation whose head was evicted.
+    QCOMPARE(realRowCount(model), cap);
+    QVERIFY(model.message(0)->isMultilineContinuation);
+
+    // Collapsing back with a leading orphan continuation at the front must also
+    // be safe: the collapse path tolerates a continuation whose head was evicted.
+    model.setBreakLines(false);
+    QVERIFY(model.rowCount() >= 1);
 }
 
 // QTEST_MAIN (a real QApplication), not QTEST_GUILESS_MAIN: LogModel's

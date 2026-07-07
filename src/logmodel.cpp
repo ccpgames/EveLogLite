@@ -215,6 +215,12 @@ void LogModel::setRetentionMode(RetentionMode mode)
         autoSave();
         clear();
     }
+    else if (m_retentionMode == RetentionMode::Rolling && m_messages.size() > m_maxMessages)
+    {
+        // Switching into Rolling while already over the cap trims immediately, so
+        // the mode takes effect at once rather than only on the next message.
+        evictOldest(m_messages.size() - m_maxMessages);
+    }
 }
 
 RetentionMode LogModel::retentionMode() const
@@ -240,6 +246,34 @@ RetentionMode LogModel::retentionModeFromSettings(QSettings& settings)
     return RetentionMode::Unbounded;
 }
 
+void LogModel::recordMessage(LogMessage* message)
+{
+    // Appends one received message to the buffer and updates the per-message
+    // accounting that goes with it: the running-rate pulse and the severity
+    // statistics. Statistics count head messages currently in the buffer, so the
+    // counter for this message's severity is bumped exactly once here and later
+    // decremented when the message is evicted or cleared.
+    addMessage(message);
+    m_runningCounts[message->severity].add();
+    switch (message->severity)
+    {
+    case SEVERITY_ERR:
+        m_statistics.error++;
+        break;
+    case SEVERITY_WARN:
+        m_statistics.warning++;
+        break;
+    case SEVERITY_NOTICE:
+        m_statistics.notice++;
+        break;
+    case SEVERITY_INFO:
+        m_statistics.info++;
+        break;
+    default:
+        break;
+    }
+}
+
 void LogModel::enforceRetentionPolicy()
 {
     switch (m_retentionMode)
@@ -254,12 +288,66 @@ void LogModel::enforceRetentionPolicy()
         }
         break;
     case RetentionMode::Rolling:
-        // Bounded rolling eviction is not implemented yet, so this mode
-        // currently behaves like Unbounded: the buffer keeps growing.
+        if (m_messages.size() > m_maxMessages)
+        {
+            evictOldest(m_messages.size() - m_maxMessages);
+        }
         break;
     case RetentionMode::Unbounded:
         break;
     }
+}
+
+void LogModel::evictOldest(int count)
+{
+    if (count > m_messages.size())
+    {
+        count = m_messages.size();
+    }
+    // Keep the severity statistics in step with the buffer: each counter was
+    // incremented once per head message on arrival, so every evicted head
+    // decrements the counter for its severity. Continuation rows were never
+    // counted, so they are skipped. The guard against dropping below zero is
+    // defensive; a head is counted exactly once, so it cannot legitimately
+    // underflow.
+    for (int i = 0; i < count; ++i)
+    {
+        const LogMessage* message = m_messages[i];
+        if (message->isMultilineContinuation)
+        {
+            continue;
+        }
+        switch (message->severity)
+        {
+        case SEVERITY_ERR:
+            if (m_statistics.error > 0)
+            {
+                --m_statistics.error;
+            }
+            break;
+        case SEVERITY_WARN:
+            if (m_statistics.warning > 0)
+            {
+                --m_statistics.warning;
+            }
+            break;
+        case SEVERITY_NOTICE:
+            if (m_statistics.notice > 0)
+            {
+                --m_statistics.notice;
+            }
+            break;
+        case SEVERITY_INFO:
+            if (m_statistics.info > 0)
+            {
+                --m_statistics.info;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+    removeOldestRows(count);
 }
 
 void LogModel::setMaxMessages(int maxMessages)
@@ -269,6 +357,11 @@ void LogModel::setMaxMessages(int maxMessages)
     {
         autoSave();
         clear();
+    }
+    else if (m_retentionMode == RetentionMode::Rolling && m_messages.size() > m_maxMessages)
+    {
+        // Lowering the cap under Rolling trims down to the new cap immediately.
+        evictOldest(m_messages.size() - m_maxMessages);
     }
 }
 
@@ -365,25 +458,7 @@ void LogModel::readMessages()
         {
             m_nextMessage->message = QString::fromUtf8(m_receivedText.constData());
             m_receivedText.clear();
-            addMessage(m_nextMessage);
-            m_runningCounts[m_nextMessage->severity].add();
-            switch (m_nextMessage->severity)
-            {
-            case SEVERITY_ERR:
-                m_statistics.error++;
-                break;
-            case SEVERITY_WARN:
-                m_statistics.warning++;
-                break;
-            case SEVERITY_NOTICE:
-                m_statistics.notice++;
-                break;
-            case SEVERITY_INFO:
-                m_statistics.info++;
-                break;
-            default:
-                break;
-            }
+            recordMessage(m_nextMessage);
             m_nextMessage = nullptr;
         }
     }

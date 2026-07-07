@@ -305,6 +305,33 @@ void AbstractLogModel::addMessage(LogMessage* message)
     }
 }
 
+void AbstractLogModel::removeOldestRows(int count)
+{
+    if (count > m_messages.size())
+    {
+        count = m_messages.size();
+    }
+    if (count <= 0)
+    {
+        return;
+    }
+    // Remove only real rows in the range [0, count - 1]. rowCount() is
+    // m_messages.size() + 1 because the view draws a trailing sentinel row that
+    // the buffer does not back; that phantom row must never be included here or
+    // the view's row bookkeeping desyncs from the buffer.
+    beginRemoveRows(QModelIndex(), 0, count - 1);
+    // The buffer holds owning raw pointers, so every evicted entry is freed here
+    // before its slot is dropped. Skipping this leaks the message even though the
+    // row is gone, which would defeat the whole point of a bounded buffer. This
+    // matches the free that clear() performs.
+    for (int i = 0; i < count; ++i)
+    {
+        delete m_messages[i];
+    }
+    m_messages.remove(0, count);
+    endRemoveRows();
+}
+
 void AbstractLogModel::refreshColorBackgroundTheme()
 {
     QVector<int> roles;
