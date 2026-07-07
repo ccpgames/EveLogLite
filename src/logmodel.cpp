@@ -1,6 +1,7 @@
 #include "logmodel.h"
 #include <QTcpSocket>
 #include <QDateTime>
+#include <QSettings>
 #include <QPixmap>
 #include <QSortFilterProxyModel>
 #include <QDebug>
@@ -143,7 +144,7 @@ LogModel::LogModel(QObject* parent)
     :AbstractLogModel(parent),
     m_nextMessage(nullptr),
     m_maxMessages(100000),
-    m_serverMode(false)
+    m_retentionMode(RetentionMode::Unbounded)
 {
     connect(&m_server, SIGNAL(newConnection()), this, SLOT(acceptConnection()));
     m_listening = m_server.listen(QHostAddress::Any, 0xCC9);
@@ -206,25 +207,65 @@ bool LogModel::isListening() const
     return m_listening;
 }
 
-void LogModel::setServerMode(bool serverMode)
+void LogModel::setRetentionMode(RetentionMode mode)
 {
-    m_serverMode = serverMode;
-    if (m_serverMode && m_messages.size() >= m_maxMessages)
+    m_retentionMode = mode;
+    if (m_retentionMode == RetentionMode::Server && m_messages.size() >= m_maxMessages)
     {
         autoSave();
         clear();
     }
 }
 
-bool LogModel::isInServerMode() const
+RetentionMode LogModel::retentionMode() const
 {
-    return m_serverMode;
+    return m_retentionMode;
+}
+
+RetentionMode LogModel::retentionModeFromSettings(QSettings& settings)
+{
+    if (settings.contains("retentionMode"))
+    {
+        int stored = settings.value("retentionMode").toInt();
+        if (stored >= int(RetentionMode::Unbounded) && stored <= int(RetentionMode::Rolling))
+        {
+            return static_cast<RetentionMode>(stored);
+        }
+        return RetentionMode::Unbounded;
+    }
+    if (settings.value("serverMode", false).toBool())
+    {
+        return RetentionMode::Server;
+    }
+    return RetentionMode::Unbounded;
+}
+
+void LogModel::enforceRetentionPolicy()
+{
+    switch (m_retentionMode)
+    {
+    case RetentionMode::Server:
+        if (m_messages.size() >= m_maxMessages)
+        {
+            if (autoSave())
+            {
+                clear();
+            }
+        }
+        break;
+    case RetentionMode::Rolling:
+        // Bounded rolling eviction is not implemented yet, so this mode
+        // currently behaves like Unbounded: the buffer keeps growing.
+        break;
+    case RetentionMode::Unbounded:
+        break;
+    }
 }
 
 void LogModel::setMaxMessages(int maxMessages)
 {
     m_maxMessages = maxMessages;
-    if (m_serverMode && m_messages.size() >= m_maxMessages)
+    if (m_retentionMode == RetentionMode::Server && m_messages.size() >= m_maxMessages)
     {
         autoSave();
         clear();
@@ -351,14 +392,7 @@ void LogModel::readMessages()
         beginInsertRows(QModelIndex(), count, m_messages.size() - 1);
         endInsertRows();
     }
-    if (m_serverMode && m_messages.size() >= m_maxMessages)
-    {
-        if (autoSave())
-        {
-            clear();
-            count = 0;
-        }
-    }
+    enforceRetentionPolicy();
 }
 
 const LogModel::Statistics &LogModel::statistics() const

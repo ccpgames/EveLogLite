@@ -155,7 +155,7 @@ MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
             logModel->setAutoSaveDirectory(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation));
         }
         logModel->setMaxMessages(settings.value("maxMessages", 10000).toInt());
-        logModel->setServerMode(settings.value("serverMode", false).toBool());
+        logModel->setRetentionMode(LogModel::retentionModeFromSettings(settings));
         setWindowTitle(windowTitle().arg(model->isListening() ? "Listening" : "Not listening"));
 
         connect(ui->actionDisconnectAll, &QAction::triggered, logModel, &LogModel::disconnectAll);
@@ -295,7 +295,7 @@ MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
 
     connect(ui->actionClear, &QAction::triggered, model, &AbstractLogModel::clear);
 
-    ui->actionServerMode->setChecked(settings.value("serverMode").toBool());
+    ui->actionServerMode->setChecked(LogModel::retentionModeFromSettings(settings) == RetentionMode::Server);
     connect(ui->actionServerMode, &QAction::triggered, this, &MainWindow::setServerMode);
     connect(ui->actionSplitByPIDs, &QAction::triggered, this, &MainWindow::splitByPids);
     ui->actionSplitByPIDs->setChecked(settings.value("splitByPids").toBool());
@@ -658,12 +658,13 @@ void MainWindow::findPrevious()
 
 void MainWindow::setServerMode()
 {
+    RetentionMode mode = ui->actionServerMode->isChecked() ? RetentionMode::Server : RetentionMode::Unbounded;
     auto model = dynamic_cast<LogModel*>(ui->tableView->sourceModel());
     if (model)
     {
-        model->setServerMode(ui->actionServerMode->isChecked());
+        model->setRetentionMode(mode);
     }
-    QSettings().setValue("serverMode", ui->actionServerMode->isChecked());
+    QSettings().setValue("retentionMode", int(mode));
 }
 
 void MainWindow::splitByPids()
