@@ -1,6 +1,7 @@
 #include "logmodel.h"
 #include <QTcpSocket>
 #include <QDateTime>
+#include <QSettings>
 #include <QPixmap>
 #include <QSortFilterProxyModel>
 #include <QDebug>
@@ -143,7 +144,7 @@ LogModel::LogModel(QObject* parent)
     :AbstractLogModel(parent),
     m_nextMessage(nullptr),
     m_maxMessages(100000),
-    m_serverMode(false)
+    m_retentionMode(RetentionMode::Unbounded)
 {
     connect(&m_server, SIGNAL(newConnection()), this, SLOT(acceptConnection()));
     m_listening = m_server.listen(QHostAddress::Any, 0xCC9);
@@ -206,28 +207,151 @@ bool LogModel::isListening() const
     return m_listening;
 }
 
-void LogModel::setServerMode(bool serverMode)
+void LogModel::setRetentionMode(RetentionMode mode)
 {
-    m_serverMode = serverMode;
-    if (m_serverMode && m_messages.size() >= m_maxMessages)
+    m_retentionMode = mode;
+    if (m_retentionMode == RetentionMode::Server && m_messages.size() >= m_maxMessages)
     {
         autoSave();
         clear();
     }
+    else if (m_retentionMode == RetentionMode::Rolling && m_messages.size() > m_maxMessages)
+    {
+        // Trim now so switching into Rolling over the cap takes effect at once.
+        evictOldest(m_messages.size() - m_maxMessages);
+    }
 }
 
-bool LogModel::isInServerMode() const
+RetentionMode LogModel::retentionMode() const
 {
-    return m_serverMode;
+    return m_retentionMode;
+}
+
+RetentionMode LogModel::retentionModeFromSettings(QSettings& settings)
+{
+    if (settings.contains("retentionMode"))
+    {
+        int stored = settings.value("retentionMode").toInt();
+        if (stored >= int(RetentionMode::Unbounded) && stored <= int(RetentionMode::Rolling))
+        {
+            return static_cast<RetentionMode>(stored);
+        }
+        return RetentionMode::Unbounded;
+    }
+    if (settings.value("serverMode", false).toBool())
+    {
+        return RetentionMode::Server;
+    }
+    return RetentionMode::Unbounded;
+}
+
+void LogModel::recordMessage(LogMessage* message)
+{
+    addMessage(message);
+    m_runningCounts[message->severity].add();
+    switch (message->severity)
+    {
+    case SEVERITY_ERR:
+        m_statistics.error++;
+        break;
+    case SEVERITY_WARN:
+        m_statistics.warning++;
+        break;
+    case SEVERITY_NOTICE:
+        m_statistics.notice++;
+        break;
+    case SEVERITY_INFO:
+        m_statistics.info++;
+        break;
+    default:
+        break;
+    }
+}
+
+void LogModel::enforceRetentionPolicy()
+{
+    switch (m_retentionMode)
+    {
+    case RetentionMode::Server:
+        if (m_messages.size() >= m_maxMessages)
+        {
+            if (autoSave())
+            {
+                clear();
+            }
+        }
+        break;
+    case RetentionMode::Rolling:
+        if (m_messages.size() > m_maxMessages)
+        {
+            evictOldest(m_messages.size() - m_maxMessages);
+        }
+        break;
+    case RetentionMode::Unbounded:
+        break;
+    }
+}
+
+void LogModel::evictOldest(int count)
+{
+    if (count > m_messages.size())
+    {
+        count = m_messages.size();
+    }
+    // Mirror the per-severity increment recordMessage() did on arrival. Only
+    // heads were counted, so continuation rows are skipped.
+    for (int i = 0; i < count; ++i)
+    {
+        const LogMessage* message = m_messages[i];
+        if (message->isMultilineContinuation)
+        {
+            continue;
+        }
+        switch (message->severity)
+        {
+        case SEVERITY_ERR:
+            if (m_statistics.error > 0)
+            {
+                --m_statistics.error;
+            }
+            break;
+        case SEVERITY_WARN:
+            if (m_statistics.warning > 0)
+            {
+                --m_statistics.warning;
+            }
+            break;
+        case SEVERITY_NOTICE:
+            if (m_statistics.notice > 0)
+            {
+                --m_statistics.notice;
+            }
+            break;
+        case SEVERITY_INFO:
+            if (m_statistics.info > 0)
+            {
+                --m_statistics.info;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+    removeOldestRows(count);
 }
 
 void LogModel::setMaxMessages(int maxMessages)
 {
     m_maxMessages = maxMessages;
-    if (m_serverMode && m_messages.size() >= m_maxMessages)
+    if (m_retentionMode == RetentionMode::Server && m_messages.size() >= m_maxMessages)
     {
         autoSave();
         clear();
+    }
+    else if (m_retentionMode == RetentionMode::Rolling && m_messages.size() > m_maxMessages)
+    {
+        // Lowering the cap under Rolling trims down to the new cap immediately.
+        evictOldest(m_messages.size() - m_maxMessages);
     }
 }
 
@@ -324,25 +448,7 @@ void LogModel::readMessages()
         {
             m_nextMessage->message = QString::fromUtf8(m_receivedText.constData());
             m_receivedText.clear();
-            addMessage(m_nextMessage);
-            m_runningCounts[m_nextMessage->severity].add();
-            switch (m_nextMessage->severity)
-            {
-            case SEVERITY_ERR:
-                m_statistics.error++;
-                break;
-            case SEVERITY_WARN:
-                m_statistics.warning++;
-                break;
-            case SEVERITY_NOTICE:
-                m_statistics.notice++;
-                break;
-            case SEVERITY_INFO:
-                m_statistics.info++;
-                break;
-            default:
-                break;
-            }
+            recordMessage(m_nextMessage);
             m_nextMessage = nullptr;
         }
     }
@@ -351,14 +457,7 @@ void LogModel::readMessages()
         beginInsertRows(QModelIndex(), count, m_messages.size() - 1);
         endInsertRows();
     }
-    if (m_serverMode && m_messages.size() >= m_maxMessages)
-    {
-        if (autoSave())
-        {
-            clear();
-            count = 0;
-        }
-    }
+    enforceRetentionPolicy();
 }
 
 const LogModel::Statistics &LogModel::statistics() const

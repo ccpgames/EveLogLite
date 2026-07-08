@@ -59,7 +59,7 @@ private slots:
     void saveFile();
     void exportAsText();
 
-    void setServerMode();
+    void retentionModeActionTriggered();
     void splitByPids();
     void showSettings();
     void showAboutDialog();

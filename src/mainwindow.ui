@@ -454,6 +454,7 @@
     <addaction name="menu_Disconnect_Client"/>
     <addaction name="separator"/>
     <addaction name="actionServerMode"/>
+    <addaction name="actionRollingMode"/>
     <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
@@ -713,6 +714,14 @@
    </property>
    <property name="text">
     <string>Server Mode</string>
+   </property>
+  </action>
+  <action name="actionRollingMode">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Rolling Mode (keep newest)</string>
    </property>
   </action>
   <action name="actionEditFilters">

@@ -305,6 +305,27 @@ void AbstractLogModel::addMessage(LogMessage* message)
     }
 }
 
+void AbstractLogModel::removeOldestRows(int count)
+{
+    if (count > m_messages.size())
+    {
+        count = m_messages.size();
+    }
+    if (count <= 0)
+    {
+        return;
+    }
+    // rowCount() is m_messages.size() + 1: the extra is a trailing sentinel row
+    // the buffer does not back, so it must stay out of the removed range.
+    beginRemoveRows(QModelIndex(), 0, count - 1);
+    for (int i = 0; i < count; ++i)
+    {
+        delete m_messages[i];
+    }
+    m_messages.remove(0, count);
+    endRemoveRows();
+}
+
 void AbstractLogModel::refreshColorBackgroundTheme()
 {
     QVector<int> roles;

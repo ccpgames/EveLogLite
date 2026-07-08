@@ -57,28 +57,32 @@ class LogLiteClient(object):
         msg.type = _MessageType.CONNECTION_MESSAGE
         msg.body.connection.version = VERSION
         msg.body.connection.pid = pid
-        msg.body.connection.machine_name = machine_name
-        msg.body.connection.executable_path = executable_path
-        self.socket.sendall(buffer(msg)[:])
+        msg.body.connection.machine_name = machine_name.encode('utf-8') if isinstance(machine_name, str) else machine_name
+        msg.body.connection.executable_path = executable_path.encode('utf-8') if isinstance(executable_path, str) else executable_path
+        self.socket.sendall(bytes(msg))
 
     def log(self, severity, message, timestamp=None, module='', channel=''):
         msg = _Message()
         msg.body.text.timestamp = timestamp or int(time.time() * 1000)
         msg.body.text.severity = severity
-        msg.body.text.module = module
-        msg.body.text.channel = channel
-        if len(message) < 255:
+        msg.body.text.module = module.encode('utf-8') if isinstance(module, str) else module
+        msg.body.text.channel = channel.encode('utf-8') if isinstance(channel, str) else channel
+
+        # Encode message to bytes and handle length in bytes, not chars
+        message_bytes = message.encode('utf-8') if isinstance(message, str) else message
+
+        if len(message_bytes) < 255:
             msg.type = _MessageType.SIMPLE_MESSAGE
-            msg.body.text.message = message
-            self.socket.sendall(buffer(msg)[:])
+            msg.body.text.message = message_bytes
+            self.socket.sendall(bytes(msg))
         else:
             offset = 0
             msg.type = _MessageType.LARGE_MESSAGE
-            while offset < len(message):
-                msg.body.text.message = message[offset:offset + 255]
-                self.socket.sendall(buffer(msg)[:])
+            while offset < len(message_bytes):
+                msg.body.text.message = message_bytes[offset:offset + 255]
+                self.socket.sendall(bytes(msg))
                 offset += 255
-                if offset + 255 >= len(message):
+                if offset + 255 >= len(message_bytes):
                     msg.type = _MessageType.CONTINUATION_END_MESSAGE
                 else:
                     msg.type = _MessageType.CONTINUATION_MESSAGE

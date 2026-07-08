@@ -178,3 +178,6 @@ install(
     RUNTIME DESTINATION ${CCP_VENDOR_BIN_PATH}
     BUNDLE DESTINATION ${CCP_VENDOR_BIN_PATH}
 )
+
+enable_testing()
+add_subdirectory(tests)

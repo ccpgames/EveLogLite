@@ -101,6 +101,7 @@ public:
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
 protected:
     void addMessage(LogMessage*);
+    void removeOldestRows(int count);
     QVector<LogMessage*> m_messages;
     bool m_breakLines;
 private:

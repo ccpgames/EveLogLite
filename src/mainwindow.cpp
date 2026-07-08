@@ -6,6 +6,7 @@
 #include "logstatistics.h"
 #include "logmonitorfilemodel.h"
 #include <QShortcut>
+#include <QActionGroup>
 #include <QMenu>
 #include <QClipboard>
 #include <QFileDialog>
@@ -155,7 +156,7 @@ MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
             logModel->setAutoSaveDirectory(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation));
         }
         logModel->setMaxMessages(settings.value("maxMessages", 10000).toInt());
-        logModel->setServerMode(settings.value("serverMode", false).toBool());
+        logModel->setRetentionMode(LogModel::retentionModeFromSettings(settings));
         setWindowTitle(windowTitle().arg(model->isListening() ? "Listening" : "Not listening"));
 
         connect(ui->actionDisconnectAll, &QAction::triggered, logModel, &LogModel::disconnectAll);
@@ -295,8 +296,19 @@ MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
 
     connect(ui->actionClear, &QAction::triggered, model, &AbstractLogModel::clear);
 
-    ui->actionServerMode->setChecked(settings.value("serverMode").toBool());
-    connect(ui->actionServerMode, &QAction::triggered, this, &MainWindow::setServerMode);
+    RetentionMode initialRetentionMode = LogModel::retentionModeFromSettings(settings);
+    ui->actionServerMode->setChecked(initialRetentionMode == RetentionMode::Server);
+    ui->actionRollingMode->setChecked(initialRetentionMode == RetentionMode::Rolling);
+
+    // ExclusiveOptional lets both actions be unchecked (which means Unbounded)
+    // while still forbidding both checked at once.
+    auto retentionModeGroup = new QActionGroup(this);
+    retentionModeGroup->setExclusionPolicy(QActionGroup::ExclusionPolicy::ExclusiveOptional);
+    retentionModeGroup->addAction(ui->actionServerMode);
+    retentionModeGroup->addAction(ui->actionRollingMode);
+
+    connect(ui->actionServerMode, &QAction::triggered, this, &MainWindow::retentionModeActionTriggered);
+    connect(ui->actionRollingMode, &QAction::triggered, this, &MainWindow::retentionModeActionTriggered);
     connect(ui->actionSplitByPIDs, &QAction::triggered, this, &MainWindow::splitByPids);
     ui->actionSplitByPIDs->setChecked(settings.value("splitByPids").toBool());
     splitByPids();
@@ -656,14 +668,24 @@ void MainWindow::findPrevious()
     ui->tableView->selectPreviousMatching(ui->searchText->text());
 }
 
-void MainWindow::setServerMode()
+void MainWindow::retentionModeActionTriggered()
 {
+    RetentionMode mode = RetentionMode::Unbounded;
+    if (ui->actionServerMode->isChecked())
+    {
+        mode = RetentionMode::Server;
+    }
+    else if (ui->actionRollingMode->isChecked())
+    {
+        mode = RetentionMode::Rolling;
+    }
+
     auto model = dynamic_cast<LogModel*>(ui->tableView->sourceModel());
     if (model)
     {
-        model->setServerMode(ui->actionServerMode->isChecked());
+        model->setRetentionMode(mode);
     }
-    QSettings().setValue("serverMode", ui->actionServerMode->isChecked());
+    QSettings().setValue("retentionMode", int(mode));
 }
 
 void MainWindow::splitByPids()
