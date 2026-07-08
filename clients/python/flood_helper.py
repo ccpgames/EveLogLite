@@ -42,7 +42,6 @@ Examples:
 
     args = parser.parse_args()
 
-    # Map severity string to constant
     severity_map = {
         'info': Severity.INFO,
         'notice': Severity.NOTICE,
@@ -51,10 +50,8 @@ Examples:
     }
 
     try:
-        # Create client and send CONNECTION_MESSAGE handshake
         client = LogLiteClient(server=args.host, pid=None, machine_name=None, executable_path=None)
 
-        # Send configured count of messages with monotonic sequence numbers
         for seq in range(args.count):
             message_text = 'msg {}'.format(seq)
             client.log(

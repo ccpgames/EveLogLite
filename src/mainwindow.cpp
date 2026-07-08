@@ -300,11 +300,8 @@ MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
     ui->actionServerMode->setChecked(initialRetentionMode == RetentionMode::Server);
     ui->actionRollingMode->setChecked(initialRetentionMode == RetentionMode::Rolling);
 
-    // The three retention modes form a radio group: at most one of the two
-    // actions can be checked, and checking one unchecks the other. Neither
-    // checked means Unbounded. This is the single place mutual exclusion is
-    // enforced in the UI; the handler below reads back whichever action (if
-    // any) the group left checked.
+    // ExclusiveOptional lets both actions be unchecked (which means Unbounded)
+    // while still forbidding both checked at once.
     auto retentionModeGroup = new QActionGroup(this);
     retentionModeGroup->setExclusionPolicy(QActionGroup::ExclusionPolicy::ExclusiveOptional);
     retentionModeGroup->addAction(ui->actionServerMode);
@@ -673,9 +670,6 @@ void MainWindow::findPrevious()
 
 void MainWindow::retentionModeActionTriggered()
 {
-    // The QActionGroup(ExclusiveOptional) guarantees at most one of these is
-    // checked, so this if/else-if is exhaustive over the three modes without
-    // any combined state being reachable.
     RetentionMode mode = RetentionMode::Unbounded;
     if (ui->actionServerMode->isChecked())
     {

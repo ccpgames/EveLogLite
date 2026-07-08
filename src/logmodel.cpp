@@ -217,8 +217,7 @@ void LogModel::setRetentionMode(RetentionMode mode)
     }
     else if (m_retentionMode == RetentionMode::Rolling && m_messages.size() > m_maxMessages)
     {
-        // Switching into Rolling while already over the cap trims immediately, so
-        // the mode takes effect at once rather than only on the next message.
+        // Trim now so switching into Rolling over the cap takes effect at once.
         evictOldest(m_messages.size() - m_maxMessages);
     }
 }
@@ -248,11 +247,6 @@ RetentionMode LogModel::retentionModeFromSettings(QSettings& settings)
 
 void LogModel::recordMessage(LogMessage* message)
 {
-    // Appends one received message to the buffer and updates the per-message
-    // accounting that goes with it: the running-rate pulse and the severity
-    // statistics. Statistics count head messages currently in the buffer, so the
-    // counter for this message's severity is bumped exactly once here and later
-    // decremented when the message is evicted or cleared.
     addMessage(message);
     m_runningCounts[message->severity].add();
     switch (message->severity)
@@ -304,12 +298,8 @@ void LogModel::evictOldest(int count)
     {
         count = m_messages.size();
     }
-    // Keep the severity statistics in step with the buffer: each counter was
-    // incremented once per head message on arrival, so every evicted head
-    // decrements the counter for its severity. Continuation rows were never
-    // counted, so they are skipped. The guard against dropping below zero is
-    // defensive; a head is counted exactly once, so it cannot legitimately
-    // underflow.
+    // Mirror the per-severity increment recordMessage() did on arrival. Only
+    // heads were counted, so continuation rows are skipped.
     for (int i = 0; i < count; ++i)
     {
         const LogMessage* message = m_messages[i];

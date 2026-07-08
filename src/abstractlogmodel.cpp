@@ -315,15 +315,9 @@ void AbstractLogModel::removeOldestRows(int count)
     {
         return;
     }
-    // Remove only real rows in the range [0, count - 1]. rowCount() is
-    // m_messages.size() + 1 because the view draws a trailing sentinel row that
-    // the buffer does not back; that phantom row must never be included here or
-    // the view's row bookkeeping desyncs from the buffer.
+    // rowCount() is m_messages.size() + 1: the extra is a trailing sentinel row
+    // the buffer does not back, so it must stay out of the removed range.
     beginRemoveRows(QModelIndex(), 0, count - 1);
-    // The buffer holds owning raw pointers, so every evicted entry is freed here
-    // before its slot is dropped. Skipping this leaks the message even though the
-    // row is gone, which would defeat the whole point of a bounded buffer. This
-    // matches the free that clear() performs.
     for (int i = 0; i < count; ++i)
     {
         delete m_messages[i];

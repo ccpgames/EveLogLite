@@ -6,12 +6,8 @@
 
 class QSettings;
 
-// The single policy that decides what happens to the log buffer when it reaches
-// the cap. Exactly one is active at a time, so a combined state is
-// unrepresentable. The integer values are persisted to disk and must stay
-// stable across versions; new modes append (3+). Unbounded lets the buffer grow
-// forever; Server autosaves the whole buffer to a file and then clears it;
-// Rolling drops the oldest rows to hold exactly the cap.
+// The integer values are persisted to disk and must stay stable across
+// versions; new modes append (3+).
 enum class RetentionMode
 {
     Unbounded = 0,
@@ -62,29 +58,13 @@ public:
     QString autoSaveDirectory() const;
     int getRunningCount(LogSeverity severity);
 
-    // Resolves the retention mode to apply on load. If the "retentionMode" key
-    // is present its stored integer maps straight to the enum (0/1/2), so a
-    // persisted mode is honored even if the current UI has no control to select
-    // it yet. If the key is absent it migrates the legacy "serverMode" bool
-    // (true -> Server, false/absent -> Unbounded). An out-of-range stored value
-    // falls back to Unbounded.
+    // Migrates the legacy "serverMode" bool when the "retentionMode" key is
+    // absent; an out-of-range stored value falls back to Unbounded.
     static RetentionMode retentionModeFromSettings(QSettings& settings);
 protected:
-    // Appends one received message and updates the accounting tied to arrival:
-    // the running-rate pulse and the per-head severity statistics. This is the
-    // single per-message ingest step the socket receive loop runs for each
-    // completed message.
     void recordMessage(LogMessage* message);
-    // Applies the active retention policy to the current buffer. Called after a
-    // batch of messages is appended. Server autosaves and clears at the cap;
-    // Rolling drops the oldest rows to hold exactly the cap; Unbounded never
-    // evicts.
     void enforceRetentionPolicy();
 private:
-    // Evicts the oldest `count` rows for Rolling mode: decrements the severity
-    // statistics for each evicted head message (continuation rows were never
-    // counted, so they are skipped) and then frees and removes the rows. Running
-    // counts are left untouched, as they are a self-expiring rate pulse.
     void evictOldest(int count);
     bool autoSave();
 

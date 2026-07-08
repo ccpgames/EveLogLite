@@ -101,10 +101,6 @@ public:
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
 protected:
     void addMessage(LogMessage*);
-    // Evicts the oldest rows from the front of the buffer with correct row
-    // signals, freeing each removed message. Only real rows are removed; the
-    // trailing sentinel row that rowCount() reports on top of the buffer size is
-    // never part of the removed range.
     void removeOldestRows(int count);
     QVector<LogMessage*> m_messages;
     bool m_breakLines;
