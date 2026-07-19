@@ -18,14 +18,17 @@ void LogMap::setModel(LogFilter *model)
 {
     if (m_model)
     {
-        disconnect(m_model, &LogFilter::rowsInserted, this, &LogMap::invalidateMap);
-        disconnect(m_model, &LogFilter::rowsRemoved, this, &LogMap::invalidateMap);
+        disconnect(m_model, nullptr, this, nullptr);
     }
     m_model = model;
     if (m_model)
     {
-        connect(m_model, &LogFilter::rowsInserted, this, &LogMap::invalidateMap);
-        connect(m_model, &LogFilter::rowsRemoved, this, &LogMap::invalidateMap);
+        connect(m_model, &QAbstractItemModel::rowsInserted, this, &LogMap::invalidateMap);
+        connect(m_model, &QAbstractItemModel::rowsRemoved, this, &LogMap::invalidateMap);
+        // Severity/text filter changes rebuild the visible set via layoutChanged
+        // (not row insert/remove), so repaint the map on those too.
+        connect(m_model, &QAbstractItemModel::layoutChanged, this, &LogMap::invalidateMap);
+        connect(m_model, &QAbstractItemModel::modelReset, this, &LogMap::invalidateMap);
     }
 }
 

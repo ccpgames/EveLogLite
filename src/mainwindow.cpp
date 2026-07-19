@@ -171,7 +171,6 @@ MainWindow::MainWindow(const QString &fileName, QWidget *parent) :
     model->setTimestampPrecision(TimestampPrecision(settings.value("timestampPrecision", 0).toInt()));
 
     auto filtered = new LogFilter(this);
-    filtered->setFilterCaseSensitivity(Qt::CaseInsensitive);
     filtered->setSourceModel(model);
     ui->tableView->setModel(filtered);
 
