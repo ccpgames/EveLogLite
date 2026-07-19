@@ -1,6 +1,7 @@
 #include "logfilter.h"
 #include <QColor>
 #include <QStandardPaths>
+#include <algorithm>
 #include <QDir>
 #include <QDirIterator>
 #include <QJsonDocument>
@@ -584,50 +585,37 @@ void HighlightSet::saveSets()
 
 
 LogFilter::LogFilter(QObject* parent)
-    : QSortFilterProxyModel(parent),
+    : QAbstractProxyModel(parent),
       m_severity(0xffffffff),
       m_hasCustomFilter(false),
-      m_hasHighlight(false)
+      m_hasHighlight(false),
+      m_pendingRemoveLo(0),
+      m_pendingRemoveCount(0)
 {
 
 }
 
-void LogFilter::filterSeverity(LogSeverity severity, bool visible)
+AbstractLogModel* LogFilter::logModel() const
 {
-    auto prevSeverity = m_severity;
-    if (visible)
-    {
-        m_severity |= 1 << severity;
-    }
-    else
-    {
-        m_severity &= ~(1 << severity);
-    }
-    if (prevSeverity != m_severity)
-    {
-        invalidateFilter();
-    }
+    return static_cast<AbstractLogModel*>(sourceModel());
 }
 
-bool LogFilter::filterAcceptsRow(int sourceRow, const QModelIndex &) const
+int LogFilter::messageCount() const
 {
-    auto model = static_cast<AbstractLogModel*>(sourceModel());
-    if (sourceRow + 1 == model->rowCount())
-    {
-        return true;
-    }
-    auto message = model->message(sourceRow);
-    if (!message)
-    {
-        return false;
-    }
-    if (((1 << message->severity) & m_severity) == 0)
+    auto model = sourceModel();
+    return model ? model->rowCount() - 1 : 0;
+}
+
+bool LogFilter::accepts(const LogMessage* message) const
+{
+    if (((1u << message->severity) & m_severity) == 0)
     {
         return false;
     }
-    auto filter = filterRegularExpression();
-    if (!filter.pattern().isEmpty() && !message->channel.contains(filter) &&
-            !message->module.contains(filter) && !message->message.contains(filter))
+    if (!m_filterText.isEmpty() &&
+            !message->channel.contains(m_filterText, Qt::CaseInsensitive) &&
+            !message->module.contains(m_filterText, Qt::CaseInsensitive) &&
+            !message->message.contains(m_filterText, Qt::CaseInsensitive))
     {
         return false;
     }
@@ -636,6 +624,358 @@ bool LogFilter::filterAcceptsRow(int sourceRow, const QModelIndex &) const
         return m_customFilter.applies(message);
     }
     return true;
+}
+
+void LogFilter::rebuildMapping()
+{
+    m_proxyToSource.clear();
+    auto model = logModel();
+    if (!model)
+    {
+        return;
+    }
+    const int count = messageCount();
+    m_proxyToSource.reserve(count);
+    for (int i = 0; i < count; ++i)
+    {
+        auto message = model->message(i);
+        if (message && accepts(message))
+        {
+            m_proxyToSource.append(i);
+        }
+    }
+}
+
+void LogFilter::refilter()
+{
+    if (!sourceModel())
+    {
+        return;
+    }
+
+    emit layoutAboutToBeChanged();
+
+    // Remember what each persistent index points at (in source space) so
+    // selection and the current row survive the change to the visible set.
+    const QModelIndexList oldIndexes = persistentIndexList();
+    QVector<int> sourceRows;
+    QVector<int> columns;
+    sourceRows.reserve(oldIndexes.size());
+    columns.reserve(oldIndexes.size());
+    for (const QModelIndex& idx : oldIndexes)
+    {
+        sourceRows.append(mapToSource(idx).row());
+        columns.append(idx.column());
+    }
+
+    rebuildMapping();
+
+    QModelIndexList newIndexes;
+    newIndexes.reserve(oldIndexes.size());
+    for (int i = 0; i < oldIndexes.size(); ++i)
+    {
+        newIndexes.append(mapFromSource(sourceModel()->index(sourceRows[i], columns[i])));
+    }
+    changePersistentIndexList(oldIndexes, newIndexes);
+
+    emit layoutChanged();
+}
+
+void LogFilter::setSourceModel(QAbstractItemModel* newSourceModel)
+{
+    beginResetModel();
+    if (sourceModel())
+    {
+        disconnect(sourceModel(), &QAbstractItemModel::rowsInserted, this, &LogFilter::sourceRowsInserted);
+        disconnect(sourceModel(), &QAbstractItemModel::rowsAboutToBeRemoved, this, &LogFilter::sourceRowsAboutToBeRemoved);
+        disconnect(sourceModel(), &QAbstractItemModel::rowsRemoved, this, &LogFilter::sourceRowsRemoved);
+        disconnect(sourceModel(), &QAbstractItemModel::dataChanged, this, &LogFilter::sourceDataChanged);
+        disconnect(sourceModel(), &QAbstractItemModel::columnsAboutToBeInserted, this, &LogFilter::sourceColumnsAboutToBeInserted);
+        disconnect(sourceModel(), &QAbstractItemModel::columnsInserted, this, &LogFilter::sourceColumnsInserted);
+        disconnect(sourceModel(), &QAbstractItemModel::columnsAboutToBeRemoved, this, &LogFilter::sourceColumnsAboutToBeRemoved);
+        disconnect(sourceModel(), &QAbstractItemModel::columnsRemoved, this, &LogFilter::sourceColumnsRemoved);
+        disconnect(sourceModel(), &QAbstractItemModel::modelAboutToBeReset, this, &LogFilter::sourceAboutToBeReset);
+        disconnect(sourceModel(), &QAbstractItemModel::modelReset, this, &LogFilter::sourceReset);
+    }
+    QAbstractProxyModel::setSourceModel(newSourceModel);
+    if (newSourceModel)
+    {
+        connect(newSourceModel, &QAbstractItemModel::rowsInserted, this, &LogFilter::sourceRowsInserted);
+        connect(newSourceModel, &QAbstractItemModel::rowsAboutToBeRemoved, this, &LogFilter::sourceRowsAboutToBeRemoved);
+        connect(newSourceModel, &QAbstractItemModel::rowsRemoved, this, &LogFilter::sourceRowsRemoved);
+        connect(newSourceModel, &QAbstractItemModel::dataChanged, this, &LogFilter::sourceDataChanged);
+        connect(newSourceModel, &QAbstractItemModel::columnsAboutToBeInserted, this, &LogFilter::sourceColumnsAboutToBeInserted);
+        connect(newSourceModel, &QAbstractItemModel::columnsInserted, this, &LogFilter::sourceColumnsInserted);
+        connect(newSourceModel, &QAbstractItemModel::columnsAboutToBeRemoved, this, &LogFilter::sourceColumnsAboutToBeRemoved);
+        connect(newSourceModel, &QAbstractItemModel::columnsRemoved, this, &LogFilter::sourceColumnsRemoved);
+        connect(newSourceModel, &QAbstractItemModel::modelAboutToBeReset, this, &LogFilter::sourceAboutToBeReset);
+        connect(newSourceModel, &QAbstractItemModel::modelReset, this, &LogFilter::sourceReset);
+    }
+    rebuildMapping();
+    endResetModel();
+}
+
+QModelIndex LogFilter::mapToSource(const QModelIndex& proxyIndex) const
+{
+    if (!proxyIndex.isValid() || !sourceModel())
+    {
+        return QModelIndex();
+    }
+    const int row = proxyIndex.row();
+    int sourceRow;
+    if (row < m_proxyToSource.size())
+    {
+        sourceRow = m_proxyToSource[row];
+    }
+    else if (row == m_proxyToSource.size())
+    {
+        // trailing placeholder row, always present
+        sourceRow = messageCount();
+    }
+    else
+    {
+        return QModelIndex();
+    }
+    return sourceModel()->index(sourceRow, proxyIndex.column());
+}
+
+QModelIndex LogFilter::mapFromSource(const QModelIndex& sourceIndex) const
+{
+    if (!sourceIndex.isValid() || !sourceModel())
+    {
+        return QModelIndex();
+    }
+    const int sourceRow = sourceIndex.row();
+    int proxyRow;
+    if (sourceRow == messageCount())
+    {
+        // trailing placeholder row
+        proxyRow = m_proxyToSource.size();
+    }
+    else
+    {
+        auto it = std::lower_bound(m_proxyToSource.begin(), m_proxyToSource.end(), sourceRow);
+        if (it == m_proxyToSource.end() || *it != sourceRow)
+        {
+            return QModelIndex(); // filtered out
+        }
+        proxyRow = int(it - m_proxyToSource.begin());
+    }
+    return index(proxyRow, sourceIndex.column());
+}
+
+QModelIndex LogFilter::index(int row, int column, const QModelIndex& parent) const
+{
+    if (parent.isValid() || row < 0 || column < 0 ||
+            row >= rowCount() || column >= columnCount())
+    {
+        return QModelIndex();
+    }
+    return createIndex(row, column);
+}
+
+QModelIndex LogFilter::parent(const QModelIndex&) const
+{
+    return QModelIndex();
+}
+
+QModelIndex LogFilter::sibling(int row, int column, const QModelIndex& idx) const
+{
+    // Flat model: siblings share the (invalid) root parent. Resolve in proxy
+    // space rather than mapping through the source.
+    return index(row, column, idx.parent());
+}
+
+int LogFilter::rowCount(const QModelIndex& parent) const
+{
+    if (parent.isValid() || !sourceModel())
+    {
+        return 0;
+    }
+    // accepted message rows plus the trailing placeholder row
+    return m_proxyToSource.size() + 1;
+}
+
+int LogFilter::columnCount(const QModelIndex& parent) const
+{
+    if (parent.isValid() || !sourceModel())
+    {
+        return 0;
+    }
+    return sourceModel()->columnCount();
+}
+
+void LogFilter::sourceRowsInserted(const QModelIndex& parent, int first, int last)
+{
+    if (parent.isValid())
+    {
+        return;
+    }
+    const int delta = last - first + 1;
+    // Shift already-mapped rows that sit at or after the insertion point.
+    auto splitIt = std::lower_bound(m_proxyToSource.begin(), m_proxyToSource.end(), first);
+    const int split = int(splitIt - m_proxyToSource.begin());
+    for (int i = split; i < m_proxyToSource.size(); ++i)
+    {
+        m_proxyToSource[i] += delta;
+    }
+    // Test only the newly inserted source rows (never the placeholder, which
+    // always stays last), gathering the accepted ones in ascending order.
+    QVector<int> accepted;
+    auto model = logModel();
+    for (int sourceRow = first; sourceRow <= last; ++sourceRow)
+    {
+        auto message = model->message(sourceRow);
+        if (message && accepts(message))
+        {
+            accepted.append(sourceRow);
+        }
+    }
+    if (accepted.isEmpty())
+    {
+        return;
+    }
+    beginInsertRows(QModelIndex(), split, split + accepted.size() - 1);
+    for (int i = 0; i < accepted.size(); ++i)
+    {
+        m_proxyToSource.insert(split + i, accepted[i]);
+    }
+    endInsertRows();
+}
+
+void LogFilter::sourceRowsAboutToBeRemoved(const QModelIndex& parent, int first, int last)
+{
+    m_pendingRemoveCount = 0;
+    if (parent.isValid())
+    {
+        return;
+    }
+    // Because m_proxyToSource is sorted, the accepted rows falling inside the
+    // removed source range [first, last] form a single contiguous proxy run.
+    auto loIt = std::lower_bound(m_proxyToSource.begin(), m_proxyToSource.end(), first);
+    auto hiIt = std::lower_bound(m_proxyToSource.begin(), m_proxyToSource.end(), last + 1);
+    m_pendingRemoveLo = int(loIt - m_proxyToSource.begin());
+    m_pendingRemoveCount = int(hiIt - loIt);
+    if (m_pendingRemoveCount > 0)
+    {
+        beginRemoveRows(QModelIndex(), m_pendingRemoveLo, m_pendingRemoveLo + m_pendingRemoveCount - 1);
+    }
+}
+
+void LogFilter::sourceRowsRemoved(const QModelIndex& parent, int first, int last)
+{
+    if (parent.isValid())
+    {
+        return;
+    }
+    const int delta = last - first + 1;
+    if (m_pendingRemoveCount > 0)
+    {
+        m_proxyToSource.remove(m_pendingRemoveLo, m_pendingRemoveCount);
+    }
+    // Everything now at or after the removal point referenced source rows beyond
+    // the removed range, so slide their source indexes down.
+    for (int i = m_pendingRemoveLo; i < m_proxyToSource.size(); ++i)
+    {
+        m_proxyToSource[i] -= delta;
+    }
+    if (m_pendingRemoveCount > 0)
+    {
+        endRemoveRows();
+        m_pendingRemoveCount = 0;
+    }
+}
+
+void LogFilter::sourceDataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight, const QVector<int>& roles)
+{
+    if (topLeft.parent().isValid() || bottomRight.parent().isValid() || !sourceModel())
+    {
+        return;
+    }
+    const int sourceFirst = topLeft.row();
+    const int sourceLast = bottomRight.row();
+    const int placeholder = messageCount();
+
+    auto loIt = std::lower_bound(m_proxyToSource.begin(), m_proxyToSource.end(), sourceFirst);
+    auto hiIt = std::upper_bound(m_proxyToSource.begin(), m_proxyToSource.end(), sourceLast);
+    int proxyFirst = int(loIt - m_proxyToSource.begin());
+    int proxyLast = int(hiIt - m_proxyToSource.begin()) - 1;
+
+    if (sourceFirst <= placeholder && placeholder <= sourceLast)
+    {
+        // the changed range also covers the trailing placeholder row
+        if (proxyLast < proxyFirst)
+        {
+            proxyFirst = m_proxyToSource.size();
+        }
+        proxyLast = m_proxyToSource.size();
+    }
+
+    if (proxyLast < proxyFirst)
+    {
+        return;
+    }
+    emit dataChanged(index(proxyFirst, topLeft.column()), index(proxyLast, bottomRight.column()), roles);
+}
+
+void LogFilter::sourceColumnsAboutToBeInserted(const QModelIndex& parent, int first, int last)
+{
+    if (!parent.isValid())
+    {
+        beginInsertColumns(QModelIndex(), first, last);
+    }
+}
+
+void LogFilter::sourceColumnsInserted(const QModelIndex& parent, int, int)
+{
+    if (!parent.isValid())
+    {
+        endInsertColumns();
+    }
+}
+
+void LogFilter::sourceColumnsAboutToBeRemoved(const QModelIndex& parent, int first, int last)
+{
+    if (!parent.isValid())
+    {
+        beginRemoveColumns(QModelIndex(), first, last);
+    }
+}
+
+void LogFilter::sourceColumnsRemoved(const QModelIndex& parent, int, int)
+{
+    if (!parent.isValid())
+    {
+        endRemoveColumns();
+    }
+}
+
+void LogFilter::sourceAboutToBeReset()
+{
+    beginResetModel();
+}
+
+void LogFilter::sourceReset()
+{
+    rebuildMapping();
+    endResetModel();
+}
+
+void LogFilter::filterSeverity(LogSeverity severity, bool visible)
+{
+    auto prevSeverity = m_severity;
+    if (visible)
+    {
+        m_severity |= 1u << severity;
+    }
+    else
+    {
+        m_severity &= ~(1u << severity);
+    }
+    if (prevSeverity != m_severity)
+    {
+        refilter();
+    }
 }
 
 void LogFilter::setCustomFilter(const Filter* filter)
@@ -649,12 +989,22 @@ void LogFilter::setCustomFilter(const Filter* filter)
     {
         m_hasCustomFilter = false;
     }
-    invalidateFilter();
+    refilter();
 }
 
 const Filter* LogFilter::customFilter() const
 {
     return m_hasCustomFilter ? &m_customFilter : nullptr;
+}
+
+void LogFilter::setFilterFixedString(const QString& text)
+{
+    if (m_filterText == text)
+    {
+        return;
+    }
+    m_filterText = text;
+    refilter();
 }
 
 void LogFilter::setHighlight(const HighlightSet* highlight)
@@ -668,7 +1018,10 @@ void LogFilter::setHighlight(const HighlightSet* highlight)
     {
         m_hasHighlight = false;
     }
-    dataChanged(index(0, 0), index(rowCount(), columnCount()));
+    if (rowCount() > 0)
+    {
+        emit dataChanged(index(0, 0), index(rowCount() - 1, columnCount() - 1));
+    }
 }
 
 const HighlightSet* LogFilter::highlight() const
@@ -678,28 +1031,17 @@ const HighlightSet* LogFilter::highlight() const
 
 QVariant LogFilter::data(const QModelIndex& index, int role) const
 {
-    if (m_hasHighlight)
+    if (m_hasHighlight && (role == Qt::ForegroundRole || role == Qt::BackgroundRole))
     {
-        if (role == Qt::ForegroundRole)
+        auto model = logModel();
+        if (model)
         {
-            auto model = static_cast<AbstractLogModel*>(sourceModel());
             auto message = model->message(mapToSource(index).row());
             if (message)
             {
-                auto color = m_highlight.getForegroundColor(message);
-                if (color.isValid())
-                {
-                    return color;
-                }
-            }
-        }
-        else if (role == Qt::BackgroundRole)
-        {
-            auto model = static_cast<AbstractLogModel*>(sourceModel());
-            auto message = model->message(mapToSource(index).row());
-            if (message)
-            {
-                auto color = m_highlight.getBackgroundColor(message);
+                auto color = role == Qt::ForegroundRole
+                        ? m_highlight.getForegroundColor(message)
+                        : m_highlight.getBackgroundColor(message);
                 if (color.isValid())
                 {
                     return color;
@@ -707,7 +1049,7 @@ QVariant LogFilter::data(const QModelIndex& index, int role) const
             }
         }
     }
-    return QSortFilterProxyModel::data(index, role);
+    return QAbstractProxyModel::data(index, role);
 }
 
 void LogFilter::showErrors(bool show)
