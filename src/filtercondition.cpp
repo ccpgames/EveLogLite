@@ -46,7 +46,7 @@ FilterCondition::FilterCondition(QWidget *parent, const Filter::Condition& condi
     connect(remove, &QPushButton::clicked, this, &FilterCondition::removeClicked);
 
     layout->addLayout(hLayout);
-    layout->setMargin(0);
+    layout->setContentsMargins(0, 0, 0, 0);
 
     setLayout(layout);
 

@@ -1,0 +1,10 @@
+{
+  "dependencies": [
+    {
+      "name": "qtbase",
+      "version>=": "6.11.1",
+      "default-features": false,
+      "features": ["gui", "network", "png", "sql", "widgets"]
+    }
+  ]
+}

@@ -625,8 +625,8 @@ bool LogFilter::filterAcceptsRow(int sourceRow, const QModelIndex &) const
     {
         return false;
     }
-    auto filter = filterRegExp();
-    if (!filter.isEmpty() && !message->channel.contains(filter) &&
+    auto filter = filterRegularExpression();
+    if (!filter.pattern().isEmpty() && !message->channel.contains(filter) &&
             !message->module.contains(filter) && !message->message.contains(filter))
     {
         return false;
@@ -680,7 +680,7 @@ QVariant LogFilter::data(const QModelIndex& index, int role) const
 {
     if (m_hasHighlight)
     {
-        if (role == Qt::TextColorRole)
+        if (role == Qt::ForegroundRole)
         {
             auto model = static_cast<AbstractLogModel*>(sourceModel());
             auto message = model->message(mapToSource(index).row());
@@ -693,7 +693,7 @@ QVariant LogFilter::data(const QModelIndex& index, int role) const
                 }
             }
         }
-        else if (role == Qt::BackgroundColorRole)
+        else if (role == Qt::BackgroundRole)
         {
             auto model = static_cast<AbstractLogModel*>(sourceModel());
             auto message = model->message(mapToSource(index).row());

@@ -115,7 +115,7 @@ void AbstractLogModel::saveAsText(QIODevice* output)
             s << "\t";
             s << data(index(i, j)).toString();
         }
-        s << endl;
+        s << Qt::endl;
     }
 }
 
@@ -135,12 +135,12 @@ int AbstractLogModel::columnCount(const QModelIndex &) const
 
 QVariant AbstractLogModel::data(const QModelIndex & index, int role) const
 {
-    if ((role != Qt::DisplayRole && role != Qt::BackgroundColorRole) || index.row() >= m_messages.size())
+    if ((role != Qt::DisplayRole && role != Qt::BackgroundRole) || index.row() >= m_messages.size())
     {
         return QVariant();
     }
     auto& message = *m_messages[index.row()];
-    if (role == Qt::BackgroundColorRole)
+    if (role == Qt::BackgroundRole)
     {
         if (m_colorBackground == COLOR_NONE)
         {
@@ -308,7 +308,7 @@ void AbstractLogModel::addMessage(LogMessage* message)
 void AbstractLogModel::refreshColorBackgroundTheme()
 {
     QVector<int> roles;
-    roles.append(Qt::BackgroundColorRole);
+    roles.append(Qt::BackgroundRole);
     dataChanged(index(0, 0), index(rowCount() - 1, columnCount() - 1), roles);
 }
 
