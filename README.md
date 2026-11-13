@@ -1,8 +1,6 @@
 # Welcome to EVE LogLite!
 
--------------------
-
-LogLite is a client log viewer developed by [CCP Games] (https://www.ccpgames.com/) for their award winning MMO [EVE Online] (http://www.eveonline.com/).
+LogLite is a client log viewer developed by [Fenris Creations](https://fenris.com/) for their award winning MMO [EVE Online](https://www.eveonline.com/).
 
 
 # How to build
@@ -90,14 +88,10 @@ This setup ensures all PRs remain up-to-date with the latest changes from the ta
 
 ## License
 
--------------------
-
 All files in this project are under the [LICENSE](LICENSE) license unless otherwise stated in the file or by a dependency's license file.
 
 
 ## Author
-
--------------------
 
 Filipp Pavlov - Team TriLambda
 
